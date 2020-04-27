@@ -38,8 +38,9 @@ There's some config options that are set within the script themselves as they ar
 * `PP_ENVIRONMENT`, `PP_SERVICE` & `PP_ROLE` used in the role based classification of your Puppet master, you may want to change these to match your environment.
 
 ## Testing
-If you want to do some testing then you'll want to install Vagrant and Virtualbox, this can be done with relative ease via Chocolatey.
-`choco install vagrant, virtualbox`
+If you want to do some testing then you'll want to install Vagrant and Virtualbox, this can be done with relative ease via Chocolatey:  
+`choco install vagrant, virtualbox`  
+This works well for testing changes to the scripts and some basic Puppet stuff, for anything more involved you'll really want to setup a virtual test envrionment.
 
-Currently there are 2 vagrant boxes in the repo:
+Currently there are 2 vagrant boxes in this repo:
 `puppetlinux` and `puppetmaster`
