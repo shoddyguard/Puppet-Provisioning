@@ -24,11 +24,11 @@ throw() {
 
 # Make sure only root can run our script
 if [ "$(id -u)" != "0" ]; then
-   echo "Usage: sudo puppet6-bootstrap.sh" 1>&2
+   echo "Usage: sudo ${0##*/}" 1>&2
    exit 1
 fi
 
-### ARGUMEN PARSER ###
+### ARGUMENT PARSER ###
 while :; do
     case $1 in
         -h|--hostname)
