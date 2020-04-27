@@ -9,9 +9,10 @@ Vagrant.configure("2") do |config|
     end
     config.vm.define "puppetlinux" do |pl|
       pl.vm.network "private_network", ip: "192.168.69.3"
+      pl.vm.provision "shell", inline: "echo 192.168.69.2   bs-puppettest.brownserve.co.uk > /etc/hosts"
     end
     config.vm.define "puppetmaster" do |pm|
-      pm.vm.network "forwarded_port", guest: 80, host: 8080 # To test puppetboard add '127.0.0.1 puppetboard.bs-puppettest.brownserve.co.uk' to your hosts file and navigate to 127.0.0.1 puppetboard.bs-puppettest.brownserve.co.uk:8080
+      pm.vm.network "forwarded_port", guest: 80, host: 8080 # To test puppetboard.
       pm.vm.network "private_network", ip: "192.168.69.2"
       pm.vm.synced_folder "setup-tmp/", "/vagrat/setup-tmp" # You may want to pop your eyam keys and r10k yaml in here for ease.
       pm.vm.provider "virtualbox" do |vb|

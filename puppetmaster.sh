@@ -1,8 +1,8 @@
 #!/bin/bash
 ### START OF CONF ###
 ## You probably want to change these ##
-DEFAULT_DOMAIN=
-GITREPO=
+DEFAULT_DOMAIN="brownserve.co.uk"
+GITREPO="git@github.com:shoddyguard/brownserve_deployment.git"
 PUPPET_VER="puppet6"
 
 ## You _may_ want to change these ##
@@ -211,7 +211,10 @@ echo "$KEYSCAN" >> /root/.ssh/known_hosts
 
 echo "Generating new SSH key pair."
 # Silently generate our key pair
-cat /dev/zero | ssh-keygen -b 2048 -t rsa -q -C "$NEWHOSTNAME" -N "" > /dev/null
+if [ ! -f /root/.ssh/id_rsa.pub ] 
+then
+    cat /dev/zero | ssh-keygen -b 2048 -t rsa -q -C "$NEWHOSTNAME" -N "" > /dev/null
+fi
 
 echo "Please copy the following key into the deploy keys on your GitHub repo"
 

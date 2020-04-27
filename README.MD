@@ -44,3 +44,5 @@ This works well for testing changes to the scripts and some basic Puppet stuff, 
 
 Currently there are 2 vagrant boxes in this repo:
 `puppetlinux` and `puppetmaster`
+
+If you're using Puppetboard as part of your build you'll need to head to http://127.0.0.1:8080/branch_name/ to avoid 404 errors

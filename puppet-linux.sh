@@ -1,8 +1,9 @@
 #!/bin/bash
 ### START OF CONF ###
 ## You probably want to change these ##
-DEFAULT_DOMAIN=
-
+DEFAULT_DOMAIN="brownserve.co.uk"
+PUPPETMASTER="bs-puppettest.brownserve.co.uk"
+PUPPET_VER="puppet6"
 ## You _may_ want to change these
 WAIT_FOR_CERT=30 # how long Puppet will wait between checking for the cert, if set to 0 then the script will be paused while you sign the cert.
 
@@ -122,6 +123,9 @@ fi
 if [ -z "$NEWHOSTNAME" ]; then
     read -p "Enter a hostname for this machine: " NEWHOSTNAME
 fi
+if  [[ "$NEWHOSTNAME" != *".$DEFAULT_DOMAIN"* ]]; then
+    NEWHOSTNAME+=".${DEFAULT_DOMAIN}"
+fi
 # ensure we're not going to kill off an existing machine
 nslookup "$NEWHOSTNAME" &> /dev/null
 if [ "$?" == 0 ]; then
@@ -130,6 +134,7 @@ fi
 if [ -z "$PUPPETENV" ]; then
     read -p "Please enter the Puppet environment (git branch) to use: " PUPPETENV
 fi
+
 # Ensure we've got a FQDN for our Puppet master
 if [ -z "$PUPPETMASTER" ]; then
     read -p "Enter puppet master hostname: " PUPPETMASTER
@@ -137,13 +142,16 @@ fi
 if [[ "$PUPPETMASTER" != *"."$DEFAULT_DOMAIN* ]]; then
    PUPPETMASTER+=".${DEFAULT_DOMAIN}"
 fi
+
 ping -q -c3 "$PUPPETMASTER" &> /dev/null
-if [ $? != 0 ]
+if [ $? != 0 ]; then
    throw "Can't contact $PUPPETMASTER, are you sure it's correct?"
 fi
+
 if [ -z "$PUPPETENV" ]; then
     read -p "Please enter the Puppet environment (git branch) to use: " PUPPETENV
 fi
+
 if [ -z "$PP_ENVIRONMENT$PP_SERVICE$PP_ROLE" ]; then
     read -p "Would you like to set additional csr attributes? (service/role/pp_envrionment) [y/N]:" SET_EXTRA_ATTRIBUTES
     if [ $SET_EXTRA_ATTRIBUTES ] && [ ${SET_EXTRA_ATTRIBUTES,,} == "y" ]; then
@@ -151,6 +159,10 @@ if [ -z "$PP_ENVIRONMENT$PP_SERVICE$PP_ROLE" ]; then
     	read -p "pp_service (eg webserver/buildserver): " PP_SERVICE
     	read -p "pp_role (eg cdn/teamcity): " PP_ROLE
     fi
+fi
+
+if [ -z "$PUPPET_VER" ]; then
+    read -p "Please enter Puppet version to install (eg Puppet6): " PUPPET_VER
 fi
 ### END OF CHECKS ###
 
@@ -160,7 +172,7 @@ All prerequisite checks have passed, this machine will be configured with:
 Hostname: $NEWHOSTNAME
 Puppet Version: $PUPPET_VER
 Puppet Master: $PUPPETMASTER (PORT: $PUPPETPORT)
-Starting Environment: $PUPPETENV
+Puppet Environment: $PUPPETENV
 Extended Certificate Attributes:
     Environment: $PP_ENVIRONMENT
     Service: $PP_SERVICE
@@ -218,7 +230,7 @@ export PATH=$PATH:/opt/puppetlabs/bin
 # Set the Puppet config
 echo "Setting Puppet config"
 /opt/puppetlabs/bin/puppet config set server $PUPPETMASTER --section main || exit 1
-/opt/puppetlabs/bin/puppet config set masterport $MASTERPORT --section main || exit 1
+/opt/puppetlabs/bin/puppet config set masterport $PUPPETPORT --section main || exit 1
 /opt/puppetlabs/bin/puppet config set environment $PUPPETENV --section agent || exit 1
 
 # Set any extra CSR's
