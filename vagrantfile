@@ -1,0 +1,20 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+Vagrant.configure("2") do |config|
+    config.vm.box = "bento/ubuntu-18.04"
+    # config
+    config.vm.provider "virtualbox" do |vb|
+      vb.memory = "2048"
+      vb.cpus = 2
+    end
+    config.vm.define "puppetlinux" do |ps|
+    end
+    config.vm.define "puppetmaster" do |pm|
+      pm.vm.network "forwarded_port", guest: 80, host: 8080 # To test puppetboard add '127.0.0.1 puppetboard.bs-puppettest.brownserve.co.uk' to your hosts file and navigate to 127.0.0.1 puppetboard.bs-puppettest.brownserve.co.uk:8080
+      pm.vm.network "private_network", ip: "192.168.69.1"
+      pm.vm.synced_folder "setup-tmp/", "/vagrat/setup-tmp"
+      pm.vm.provider "virtualbox" do |vb|
+        vb.memory = "4096" # extra memories for a Puppet master
+      end
+    end
+end
