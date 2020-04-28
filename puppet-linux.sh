@@ -128,8 +128,10 @@ if  [[ "$NEWHOSTNAME" != *".$DEFAULT_DOMAIN"* ]]; then
 fi
 # ensure we're not going to kill off an existing machine (Debian/Ubuntu use 127.0.1.1)
 HOST_CHECK=$(getent ahostsv4 $NEWHOSTNAME | awk '{print $1}' | head -1)
-if ! [[ $HOST_CHECK =~ 127.0.[0-1].1 ]]; then
-    throw "$NEWHOSTNAME already seems to belong to: $HOST_CHECK"
+HOSTNAME_IP=$(hostname -I)
+IP_ARR=($HOSTNAME_IP)
+if ! [[ " ${IP_ARR[@]} " =~ " ${HOST_CHECK} " ]]; then 
+    throw "$NEWHOSTNAME already seems to belong to: $HOST_CHECK" # currently fails if host_check is empty (puppettest-master.brownserve.co.uk already seems to belong to: )
 fi
 if [ -z "$PUPPETENV" ]; then
     read -p "Please enter the Puppet environment (git branch) to use: " PUPPETENV
@@ -232,6 +234,7 @@ echo "Setting Puppet config"
 /opt/puppetlabs/bin/puppet config set server $PUPPETMASTER --section main || exit 1
 /opt/puppetlabs/bin/puppet config set masterport $PUPPETPORT --section main || exit 1
 /opt/puppetlabs/bin/puppet config set environment $PUPPETENV --section agent || exit 1
+/opt/puppetlabs/bin/puppet config set certname $NEWHOSTNAME --section main || exit 1
 
 # Set any extra CSR's
 if [ ! -z "$PP_ENVIRONMENT$PP_SERVICE$PP_ROLE" ]; then
@@ -241,8 +244,12 @@ if [ ! -z "$PP_ENVIRONMENT$PP_SERVICE$PP_ROLE" ]; then
 	[ $PP_ROLE ] && echo "    pp_role: $PP_ROLE" >> /etc/puppetlabs/puppet/csr_attributes.yaml
 fi
 
-# Do our first run
 /opt/puppetlabs/bin/puppet agent -t --waitforcert $WAIT_FOR_CERT
-
 # Enable puppet
 /opt/puppetlabs/bin/puppet agent --enable
+
+if [ $WAIT_FOR_CERT = 0 ]; then
+    Read -p "Please sign this node on $PUPPETMASTER and press enter to continue..."
+    puppet agent -t
+fi
+
