@@ -1,8 +1,8 @@
 #!/bin/bash
 ### START OF CONF ###
 ## You probably want to change these ##
-DEFAULT_DOMAIN="vagrant.local"
-PUPPETMASTER="puppettest.vagrant.local"
+DEFAULT_DOMAIN="local"
+PUPPETMASTER="puppettest.local"
 PUPPET_VER="puppet6"
 ## You _may_ want to change these
 WAIT_FOR_CERT=30 # how long Puppet will wait between checking for the cert, if set to 0 then the script will be paused while you sign the cert.
@@ -17,6 +17,11 @@ if [ "$(id -u)" != "0" ]; then
    echo "Usage: sudo ${0##*/}" 1>&2
    exit 1
 fi
+
+throw() {
+  printf '%s\n' "$1" >&2
+  exit 1
+}
 
 ### ARGUMENT PARSER ###
 while :; do
