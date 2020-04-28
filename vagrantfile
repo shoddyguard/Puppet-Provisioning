@@ -7,14 +7,21 @@ Vagrant.configure("2") do |config|
       vb.memory = "2048"
       vb.cpus = 2
     end
-    config.vm.define "puppetlinux" do |ps|
+    config.vm.define "puppetlinux" do |pl|
+      pl.vm.hostname = "puppettest-linux"
+      pl.vm.network "private_network", ip: "192.168.69.3"
     end
     config.vm.define "puppetmaster" do |pm|
-      pm.vm.network "forwarded_port", guest: 80, host: 8080 # To test puppetboard add '127.0.0.1 puppetboard.bs-puppettest.brownserve.co.uk' to your hosts file and navigate to 127.0.0.1 puppetboard.bs-puppettest.brownserve.co.uk:8080
-      pm.vm.network "private_network", ip: "192.168.69.1"
-      pm.vm.synced_folder "setup-tmp/", "/vagrat/setup-tmp"
+      pm.vm.hostname = "puppettest-master"
+      pm.vm.network "forwarded_port", guest: 80, host: 8080 # To test puppetboard.
+      pm.vm.network "private_network", ip: "192.168.69.2"
+      pm.vm.synced_folder "setup-tmp/", "/vagrat/setup-tmp" # You may want to pop your eyaml keys and r10k yaml in here for ease.
       pm.vm.provider "virtualbox" do |vb|
         vb.memory = "4096" # extra memories for a Puppet master
       end
     end
+    # Allows us to do some DNS resolution for testing agent/master combos, these will end up with .local addresses
+    config.vm.provision "shell", inline: <<-SHELL
+      apt-get install -y avahi-daemon libnss-mdns
+    SHELL
 end

@@ -1,12 +1,12 @@
 #!/bin/bash
 ### START OF CONF ###
 ## You probably want to change these ##
-DEFAULT_DOMAIN=
-GITREPO=
+DEFAULT_DOMAIN="local"
+GITREPO="git@github.com:shoddyguard/brownserve_deployment.git"
 PUPPET_VER="puppet6"
 
 ## You _may_ want to change these ##
-PP_ENVIRONMENT="live"
+PP_ENVIRONMENT="test"
 PP_SERVICE="puppetserver"
 PP_ROLE="$PUPPET_VER""_master"
 
@@ -24,11 +24,11 @@ throw() {
 
 # Make sure only root can run our script
 if [ "$(id -u)" != "0" ]; then
-   echo "Usage: sudo puppet6-bootstrap.sh" 1>&2
+   echo "Usage: sudo ${0##*/}" 1>&2
    exit 1
 fi
 
-### ARGUMEN PARSER ###
+### ARGUMENT PARSER ###
 while :; do
     case $1 in
         -h|--hostname)
@@ -108,10 +108,10 @@ fi
 if  [[ "$NEWHOSTNAME" != *".$DEFAULT_DOMAIN"* ]]; then
     NEWHOSTNAME+=".${DEFAULT_DOMAIN}"
 fi
-# ensure we're not going to kill off an existing Puppet server!
-nslookup "$NEWHOSTNAME" &> /dev/null
-if [ "$?" == 0 ]; then
-    throw "$NEWHOSTNAME already seems to be on the network!"
+# ensure we're not going to kill off an existing Puppet server! (Debian/Ubuntu use 127.0.1.1)
+HOST_CHECK=$(getent ahostsv4 $NEWHOSTNAME | awk '{print $1}' | head -1)
+if ! [[ $HOST_CHECK =~ 127.0.[0-1].1 ]]; then
+    throw "$NEWHOSTNAME already seems to belong to: $HOST_CHECK"
 fi
 if [ -z "$PUPPETENV" ]; then
     read -p "Please enter the Puppet environment (git branch) to use: " PUPPETENV
@@ -211,7 +211,10 @@ echo "$KEYSCAN" >> /root/.ssh/known_hosts
 
 echo "Generating new SSH key pair."
 # Silently generate our key pair
-cat /dev/zero | ssh-keygen -b 2048 -t rsa -q -C "$NEWHOSTNAME" -N "" > /dev/null
+if [ ! -f /root/.ssh/id_rsa.pub ] 
+then
+    cat /dev/zero | ssh-keygen -b 2048 -t rsa -q -C "$NEWHOSTNAME" -N "" > /dev/null
+fi
 
 echo "Please copy the following key into the deploy keys on your GitHub repo"
 

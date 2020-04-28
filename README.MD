@@ -11,7 +11,7 @@ It does this by installing Puppet and r10k then letting them take over to do the
 This makes certain assumptions about your environment:
 * Version control through `r10k` (https://github.com/puppetlabs/r10k)
 * Role based classification as opposed to node classification (https://puppet.com/docs/pe/2018.1/the_roles_and_profiles_method.html)
-* **Ubuntu** or **CentOS** as host OS (though I would like to support Debian in the future)
+* **Ubuntu** as host OS (CentOS support hopefully incoming)
 * Default install directories
 * A `hiera-bootstrap.yaml` file in your envrionment (see `example-bootstrap-hiera.yaml` in this repo for how I am using it)
 * Your machine is not going to be named as `Puppetserver` or `Puppetmaster` (these should be set as CNAME's rather than the hostname of the machine to allow for easy upgrade paths)
@@ -24,11 +24,11 @@ This script will:
 
 It's not perfect but if I can do it then you can too 😇
 
-There's a few command line arguments that you can pass in, if you don't specify a ***reuired*** paramater you will be prompted to do so later on:
+There's a few command line arguments that you can pass in, if you don't specify a ***required*** paramater you will be prompted to do so later on:
 * `-h|--hostname` **(*required*)** the hostname of the machine you are building, should be FQDN but the script will attempt to fix that if not.
 * `-E|--puppetenv` **(*required*)** the Puppet environment you'll use (aka Git branch name)
 * `-d|--domain` **(*required*)** the domain that your Puppet server should be part of (eg foo.com)
-* `-g|--gitrepo` **(*optional*)** the ssh address of the Github repo to use for your version control
+* `-g|--gitrepo` **(*required*)** the ssh address of the Github repo to use for your version control
 * `-P|--puppetversion` **(*optional*)** the major release of puppet to use (defaults to Puppet6)
 
 There's some config options that are set within the script themselves as they are unlikely to change much between runs.
@@ -38,8 +38,11 @@ There's some config options that are set within the script themselves as they ar
 * `PP_ENVIRONMENT`, `PP_SERVICE` & `PP_ROLE` used in the role based classification of your Puppet master, you may want to change these to match your environment.
 
 ## Testing
-If you want to do some testing then you'll want to install Vagrant and Virtualbox, this can be done with relative ease via Chocolatey.
-`choco install vagrant, virtualbox`
+If you want to do some testing then you'll want to install Vagrant and Virtualbox, this can be done with relative ease via Chocolatey:  
+`choco install vagrant, virtualbox`  
+This works well for testing changes to the scripts and some basic Puppet stuff, for anything more involved you'll really want to setup a virtual test envrionment.
 
-Currently there are 2 vagrant boxes in the repo:
+Currently there are 2 vagrant boxes in this repo:
 `puppetlinux` and `puppetmaster`
+
+If you're using Puppetboard as part of your build you'll need to head to http://127.0.0.1:8080/branch_name/ to avoid 404 errors
