@@ -1,8 +1,8 @@
 #!/bin/bash
 ### START OF CONF ###
 ## You probably want to change these ##
-DEFAULT_DOMAIN="brownserve.co.uk"
-PUPPETMASTER="bs-puppettest.brownserve.co.uk"
+DEFAULT_DOMAIN="vagrant.local"
+PUPPETMASTER="puppettest.vagrant.local"
 PUPPET_VER="puppet6"
 ## You _may_ want to change these
 WAIT_FOR_CERT=30 # how long Puppet will wait between checking for the cert, if set to 0 then the script will be paused while you sign the cert.
@@ -126,10 +126,10 @@ fi
 if  [[ "$NEWHOSTNAME" != *".$DEFAULT_DOMAIN"* ]]; then
     NEWHOSTNAME+=".${DEFAULT_DOMAIN}"
 fi
-# ensure we're not going to kill off an existing machine
-nslookup "$NEWHOSTNAME" &> /dev/null
-if [ "$?" == 0 ]; then
-    throw "$NEWHOSTNAME already seems to be on the network!"
+# ensure we're not going to kill off an existing machine (Debian/Ubuntu use 127.0.1.1)
+HOST_CHECK=$(getent ahostsv4 $NEWHOSTNAME | awk '{print $1}' | head -1)
+if ! [[ $HOST_CHECK =~ 127.0.[0-1].1 ]]; then
+    throw "$NEWHOSTNAME already seems to belong to: $HOST_CHECK"
 fi
 if [ -z "$PUPPETENV" ]; then
     read -p "Please enter the Puppet environment (git branch) to use: " PUPPETENV

@@ -1,12 +1,12 @@
 #!/bin/bash
 ### START OF CONF ###
 ## You probably want to change these ##
-DEFAULT_DOMAIN="brownserve.co.uk"
+DEFAULT_DOMAIN="local"
 GITREPO="git@github.com:shoddyguard/brownserve_deployment.git"
 PUPPET_VER="puppet6"
 
 ## You _may_ want to change these ##
-PP_ENVIRONMENT="live"
+PP_ENVIRONMENT="test"
 PP_SERVICE="puppetserver"
 PP_ROLE="$PUPPET_VER""_master"
 
@@ -108,10 +108,10 @@ fi
 if  [[ "$NEWHOSTNAME" != *".$DEFAULT_DOMAIN"* ]]; then
     NEWHOSTNAME+=".${DEFAULT_DOMAIN}"
 fi
-# ensure we're not going to kill off an existing Puppet server!
-nslookup "$NEWHOSTNAME" &> /dev/null
-if [ "$?" == 0 ]; then
-    throw "$NEWHOSTNAME already seems to be on the network!"
+# ensure we're not going to kill off an existing Puppet server! (Debian/Ubuntu use 127.0.1.1)
+HOST_CHECK=$(getent ahostsv4 $NEWHOSTNAME | awk '{print $1}' | head -1)
+if ! [[ $HOST_CHECK =~ 127.0.[0-1].1 ]]; then
+    throw "$NEWHOSTNAME already seems to belong to: $HOST_CHECK"
 fi
 if [ -z "$PUPPETENV" ]; then
     read -p "Please enter the Puppet environment (git branch) to use: " PUPPETENV

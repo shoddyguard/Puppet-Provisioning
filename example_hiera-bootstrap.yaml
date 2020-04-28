@@ -1,5 +1,5 @@
 ---
-    # BOOTSTRAP hiera config when building a puppetmaster from scratch
+    # BOOTSTRAP hiera config when building a puppetmaster from scratch using the puppetmaster.sh script
     version: 5
     
     defaults:
