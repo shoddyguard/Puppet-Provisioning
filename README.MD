@@ -2,7 +2,7 @@
 A collection of handy scripts to help you get up and running with Puppet as quickly as possible.
 Heavily inspired by Red-Gate's Puppet Bootstrap project.
 
-These scripts are intended for use in role based classification as opposed to node classification (https://puppet.com/docs/pe/2018.1/the_roles_and_profiles_method.html)
+These scripts are intended for use in hiera based classification environments.
 
 **Disclaimer**: I have no idea what I'm doing.
 
@@ -28,7 +28,7 @@ It does this by installing Puppet and r10k then letting them take over to do the
 
 This makes certain assumptions about your environment:
 * Version control through `r10k` (https://github.com/puppetlabs/r10k)
-* **Ubuntu** as host OS (CentOS support hopefully incoming)
+* **Ubuntu** as host OS (CentOS support flakey)
 * Default install directories
 * A `hiera-bootstrap.yaml` file in your envrionment (see `example-bootstrap-hiera.yaml` in this repo for how I am using it)
 * Your machine is not going to be named as `Puppetserver` or `Puppetmaster` (these should be set as CNAME's rather than the hostname of the machine to allow for easy upgrade paths)
@@ -61,9 +61,13 @@ This works well for testing changes to the scripts and some basic Puppet stuff, 
 
 Currently there are 2 vagrant boxes in this repo:
 * `puppetmaster`
-* `puppetlinux-ubuntu`
+* `puppetagent-ubuntu`
 
-The puppetlinux box has 2GB of RAM, 2 CPUS, and a static IP of ____ it is running ubuntu 1804.
-The puppetmaster box has a bit more RAM at 4GB, a static IP of ____ and passed through port 8080 of the host machine to port 80 of the Vagrant box for testing puppetboard.
+The `puppetagent` box has 2GB of RAM, 2 CPUS, and a static IP of 192.168.69.3. It is running Ubuntu 1804.
+The `puppetmaster` box has a bit more RAM at 4GB, a static IP of 192.168.69.2 and has port 8080 of the host machine passed through to port 80 of the Vagrant box for testing puppetboard. It's also running Ubuntu 1804.
 
-If you're using Puppetboard as part of your build you'll need to head to http://127.0.0.1:8080/branch_name/ to avoid 404 errors.
+(If you're using Puppetboard as part of your build you'll need to head to http://127.0.0.1:8080/branch_name/ to avoid 404 errors when the `production` branch has no nodes.)
+
+### Hacking at things
+Make the changes to the script and then `vagrant up` the box you want to test on (eg `vagrant up puppetmaster`) and then `vagrant ssh` into the box. 
+from here you can run the relevant script by doing `sudo bash /vagrant/<scriptname>.sh`
