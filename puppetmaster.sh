@@ -1,8 +1,8 @@
 #!/bin/bash
 ### START OF CONF ###
 ## You probably want to change these ##
-DEFAULT_DOMAIN="local"
-GITREPO="git@github.com:shoddyguard/brownserve_deployment.git"
+DEFAULT_DOMAIN=
+GITREPO=
 PUPPET_VER="puppet6"
 
 ## You _may_ want to change these ##
