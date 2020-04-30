@@ -9,6 +9,7 @@ WAIT_FOR_CERT=30 # how long Puppet will wait between checking for the cert, if s
 
 ## You probably _don't_ want to change these ##
 TEMP_DIR="setup-tmp" # if you change this it's worth adding the new value to your .gitignore if you are using vagrant
+delete_on_exit=true
 PUPPETPORT="8140"
 ### END CONF ###
 
@@ -229,6 +230,9 @@ elif [ "$dist" == "\"Ubuntu\"" ]; then
     apt-get install puppet-agent || exit 1
 else
     throw "Currently only Ubuntu and CentOS are supported."
+fi
+if [ "$delete_on_exit" = true ]; then
+    rm -r $TEMP_DIR
 fi
 
 # Add puppet to this session's PATH (hopefully the installer will sort it for future sessions)

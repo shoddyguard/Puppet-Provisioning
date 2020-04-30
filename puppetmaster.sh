@@ -12,6 +12,7 @@ PP_ROLE="$PUPPET_VER""_master"
 
 ## You probably _don't_ want to change these ##
 TEMP_DIR="setup-tmp" # if you change this it's worth adding the new value to your .gitignore if you are using vagrant
+delete_on_exit=true
 EYAML_PRIVATEKEY="/etc/puppetlabs/puppet/keys/private_key.pkcs7.pem"
 EYAML_PUBLICKEY="/etc/puppetlabs/puppet/keys/public_key.pkcs7.pem"
 R10K_YAML="/etc/puppetlabs/r10k/r10k.yaml" # temporary to get us up and running, Puppet will take over in due course
@@ -126,6 +127,7 @@ mkdir -p "/etc/puppetlabs/r10k" || exit 1
 
 if [ -d "/vagrant" ];then
     cd "/vagrant" # assume we're running in a vagrant box and want to do some testing!
+    delete_on_exit=false
 fi
 
 if [ ! -d "$TEMP_DIR" ];then
@@ -276,6 +278,10 @@ apt install ruby git -y || exit 1
 
 echo "Installing r10k"
 gem install r10k || exit 1
+
+if [ "$delete_on_exit" = true ]; then
+    rm -r $TEMP_DIR
+fi
 
 # We update all environments here as we may have nodes on different envs that we want to talk to our new server...
 echo "Running r10k. This WILL take a while..."
