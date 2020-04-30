@@ -6,12 +6,13 @@ GITREPO=
 PUPPET_VER="puppet6"
 
 ## You _may_ want to change these ##
-PP_ENVIRONMENT="live"
+PP_ENVIRONMENT="test"
 PP_SERVICE="puppetserver"
 PP_ROLE="$PUPPET_VER""_master"
 
 ## You probably _don't_ want to change these ##
 TEMP_DIR="setup-tmp" # if you change this it's worth adding the new value to your .gitignore if you are using vagrant
+delete_on_exit=true
 EYAML_PRIVATEKEY="/etc/puppetlabs/puppet/keys/private_key.pkcs7.pem"
 EYAML_PUBLICKEY="/etc/puppetlabs/puppet/keys/public_key.pkcs7.pem"
 R10K_YAML="/etc/puppetlabs/r10k/r10k.yaml" # temporary to get us up and running, Puppet will take over in due course
@@ -24,11 +25,11 @@ throw() {
 
 # Make sure only root can run our script
 if [ "$(id -u)" != "0" ]; then
-   echo "Usage: sudo puppet6-bootstrap.sh" 1>&2
+   echo "Usage: sudo ${0##*/}" 1>&2
    exit 1
 fi
 
-### ARGUMEN PARSER ###
+### ARGUMENT PARSER ###
 while :; do
     case $1 in
         -h|--hostname)
@@ -109,9 +110,13 @@ if  [[ "$NEWHOSTNAME" != *".$DEFAULT_DOMAIN"* ]]; then
     NEWHOSTNAME+=".${DEFAULT_DOMAIN}"
 fi
 # ensure we're not going to kill off an existing Puppet server!
-nslookup "$NEWHOSTNAME" &> /dev/null
-if [ "$?" == 0 ]; then
-    throw "$NEWHOSTNAME already seems to be on the network!"
+HOST_CHECK=$(getent ahostsv4 $NEWHOSTNAME | awk '{print $1}' | head -1)
+if ! [ "$HOST_CHECK" = "" ]; then
+    HOSTNAME_IP=$(hostname -I)
+    IP_ARR=($HOSTNAME_IP)
+    if ! [[ " ${IP_ARR[@]} " =~ " ${HOST_CHECK} " ]]; then
+        throw "$NEWHOSTNAME already seems to belong to: $HOST_CHECK"
+    fi
 fi
 if [ -z "$PUPPETENV" ]; then
     read -p "Please enter the Puppet environment (git branch) to use: " PUPPETENV
@@ -124,6 +129,7 @@ mkdir -p "/etc/puppetlabs/r10k" || exit 1
 
 if [ -d "/vagrant" ];then
     cd "/vagrant" # assume we're running in a vagrant box and want to do some testing!
+    delete_on_exit=false
 fi
 
 if [ ! -d "$TEMP_DIR" ];then
@@ -211,7 +217,10 @@ echo "$KEYSCAN" >> /root/.ssh/known_hosts
 
 echo "Generating new SSH key pair."
 # Silently generate our key pair
-cat /dev/zero | ssh-keygen -b 2048 -t rsa -q -C "$NEWHOSTNAME" -N "" > /dev/null
+if [ ! -f /root/.ssh/id_rsa.pub ] 
+then
+    cat /dev/zero | ssh-keygen -b 2048 -t rsa -q -C "$NEWHOSTNAME" -N "" > /dev/null
+fi
 
 echo "Please copy the following key into the deploy keys on your GitHub repo"
 
@@ -271,6 +280,10 @@ apt install ruby git -y || exit 1
 
 echo "Installing r10k"
 gem install r10k || exit 1
+
+if [ "$delete_on_exit" = true ]; then
+    rm -r $TEMP_DIR
+fi
 
 # We update all environments here as we may have nodes on different envs that we want to talk to our new server...
 echo "Running r10k. This WILL take a while..."

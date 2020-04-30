@@ -1,0 +1,5 @@
+# STOP TOUCHING MY LINE ENDINGS GIT 😠
+* -text
+
+*.ps1 text eol=crlf
+*.sh text eol=lf
