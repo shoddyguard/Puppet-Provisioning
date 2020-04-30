@@ -21,6 +21,11 @@ In addtion to these, you can optinally set extended CSR attributes with the foll
 * `-s|--ppservice` Sets the pp service (eg webserver)
 * `-r|--pprole` Sets the pp role (eg ngixnx_box or iis_box)
 
+## Puppet Windows
+(WIP)
+
+Only supports Puppet5+
+
 
 ## Puppet Master 
 The purpose of this script is to aid in the setting up of a new Puppet server from scratch, this is extremely useful when testing out a major Puppet release as you are able to spin up and test with relative ease.
