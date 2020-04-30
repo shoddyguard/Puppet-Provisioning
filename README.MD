@@ -39,7 +39,7 @@ This script will:
 * Setup r10k
 * Run a `puppet apply` using a given puppet Module name
 
-It's not perfect but if I can do it then you can too 😇
+It's not perfect, but it does the job.
 
 There's a few command line arguments that you can pass in, if you don't specify a ***required*** paramater you will be prompted to do so later on:
 * `-h|--hostname` **(*required*)** the hostname of the machine you are building, should be FQDN but the script will attempt to fix that if not.

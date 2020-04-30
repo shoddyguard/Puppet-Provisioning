@@ -111,10 +111,12 @@ if  [[ "$NEWHOSTNAME" != *".$DEFAULT_DOMAIN"* ]]; then
 fi
 # ensure we're not going to kill off an existing Puppet server!
 HOST_CHECK=$(getent ahostsv4 $NEWHOSTNAME | awk '{print $1}' | head -1)
-HOSTNAME_IP=$(hostname -I)
-IP_ARR=($HOSTNAME_IP)
-if ! [[ " ${IP_ARR[@]} " =~ " ${HOST_CHECK} " ]]; then 
-    throw "$NEWHOSTNAME already seems to belong to: $HOST_CHECK" # currently fails if host_check is empty (puppettest-master.brownserve.co.uk already seems to belong to: )
+if ! [ "$HOST_CHECK" = "" ]; then
+    HOSTNAME_IP=$(hostname -I)
+    IP_ARR=($HOSTNAME_IP)
+    if ! [[ " ${IP_ARR[@]} " =~ " ${HOST_CHECK} " ]]; then
+        throw "$NEWHOSTNAME already seems to belong to: $HOST_CHECK"
+    fi
 fi
 if [ -z "$PUPPETENV" ]; then
     read -p "Please enter the Puppet environment (git branch) to use: " PUPPETENV
