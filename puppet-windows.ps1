@@ -38,8 +38,8 @@ param (
 
     # The port to connect to on the master
     [Parameter(Mandatory = $false)]
-    [string]
-    $MasterPort = "8140",
+    [int]
+    $MasterPort = 8140,
 
     # The Puppet envrionment (aka Git branch) to use
     [Parameter(Mandatory = $false)]
@@ -49,8 +49,15 @@ param (
     # Any extended CSR attributes you'd like to set (pp_service,pp_role,pp_envrironment)
     [Parameter(Mandatory = $false)]
     [hashtable]
-    $ExtendedCAttributes
+    $CertificateExtensions,
+
+    # Puppet agent service startup mode
+    [Parameter(Mandatory = $false)]
+    [ValidateSet('Automatic', 'Manual', 'Disabled')]
+    [string]
+    $StartupMode
 )
+## Setting up ##
 function Get-CSRAttributes 
 {
     $pp_env = Read-Host "pp_environment"
@@ -120,6 +127,8 @@ function Set-CSRAttributes
         throw "failed to set yaml."
     }
 }
+## End Setup ##
+## Checks ##
 if (Get-Command puppet)
 {
     throw "Puppet is already installed"
@@ -128,6 +137,30 @@ if ($PuppetVersion -match "^[1-9]$")
 {
     $PuppetVersion = "puppet$($PuppetVersion)"
 }
+if ($PuppetMaster -notmatch ".$Domainname")
+{
+    $PuppetMaster = "$PuppetMaster.$domainname"
+}
+if (!$CertificateExtensions)
+{
+    while (!$answer)
+    {
+        $answer = Read-Host "Do you want to set extended CSR attributes? [y/n]"
+        switch ($answer.ToLower()) 
+        {
+            'y' 
+            {
+                $CertificateExtensions = Get-CSRAttributes
+            }
+            'n' 
+            {   
+                # Do nothing
+            }
+            default { Clear-Variable answer } # Unrecognised input, try again
+        }
+    }
+}
+## End Checks ##
 # For now we're getting the Puppet agent manually but ultimately I'd like to test getting it via chocolatey - that way we can keep the package up to date.
 $arch = "x86"
 if ( [Environment]::Is64BitOperatingSystem )
@@ -148,7 +181,7 @@ try
 }
 catch
 {
-    
+    throw "Failed to create temp directory"
 }
 $installer = "$tempdir\puppet.msi"
 try
@@ -157,24 +190,32 @@ try
 }
 catch
 {
-    
+    Remove-Item $tempdir -Recurse -Force -Confirm:$false -ErrorAction SilentlyContinue
+    "Failed to get Puppet installer.`n$($_.Exception.Message)"
 }
-if (!$ExtendedCAttributes)
+$installer_params = @(
+    '/qn',
+    '/norestart',
+    '/i',
+    "$installer",
+    "PUPPET_AGENT_STARTUP_MODE=$PuppetAgentStartupMode",
+    "PUPPET_MASTER_SERVER=$PuppetServer",
+    "PUPPET_AGENT_ENVIRONMENT=$PuppetEnvironment"
+)
+# do something for custom certnames here for those cases where we don't domain join a machine
+
+try
 {
-    while (!$answer)
-    {
-        $answer = Read-Host "Do you want to set extended CSR attributes? [y/n]"
-        switch ($answer.ToLower()) 
-        {
-            'y' 
-            {
-                $ExtendedCAttributes = Get-CSRAttributes
-            }
-            'n' 
-            {   
-                # Do nothing
-            }
-            default { Clear-Variable answer }
-        }
-    }
+    Start-Process msiexec.exe -ArgumentList $installer_params -Wait -NoNewWindow -ErrorAction Stop
+}
+catch
+{
+    Remove-Item $tempdir -Recurse -Force -Confirm:$false -ErrorAction SilentlyContinue
+    throw "Failed to install Puppet agent.`n$($_.Exception.Message)"
+}
+
+
+if ($MasterPort -ne 8140)
+{
+    puppet.bat config set masterport $MasterPort --section main
 }
