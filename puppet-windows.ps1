@@ -1,18 +1,12 @@
 #Requires -RunAsAdministrator
 <#
 .SYNOPSIS
-    Installs Puppet on a Windows machine
+    Installs Puppet Agent on a Windows machine
 .DESCRIPTION
-    Long description
-.EXAMPLE
-    PS C:\> <example usage>
-    Explanation of what the example does
-.INPUTS
-    Inputs (if any)
-.OUTPUTS
-    Output (if any)
+    Checks for the presence of Puppet Agent on a machine and installs it if missing. 
+    Script allows you to set extra CSR attributes for silky smooth hiera lookups. 
 .NOTES
-    General notes
+    Experimental at this point.
 #>
 [CmdletBinding()]
 param (
@@ -29,7 +23,7 @@ param (
     # The major version of Puppet to install
     [Parameter(Mandatory = $false)]
     [string]
-    $PuppetVersion = "puppet6",
+    $PuppetMajorVersion = "puppet6",
 
     # The specific puppet agent version to install
     [Parameter(Mandatory = $false)]
@@ -54,8 +48,14 @@ param (
     # Puppet agent service startup mode
     [Parameter(Mandatory = $false)]
     [ValidateSet('Automatic', 'Manual', 'Disabled')]
+    [ValidateNotNullOrEmpty()] # needed so as not to mess up the puppet.conf file
     [string]
-    $StartupMode
+    $StartupMode = 'Disabled',
+
+    # How long to wait between cert checks
+    [Parameter(Mandatory = $false)]
+    [int]
+    $WaitForCertificate = 30
 )
 ## Setting up ##
 function Get-CSRAttributes 
@@ -106,7 +106,7 @@ function Set-CSRAttributes
     {
         try
         {
-            New-Item $csr_yaml_parent-ItemType Directory -ErrorAction Stop
+            New-Item $csr_yaml_parent -ItemType Directory -ErrorAction Stop | Out-Null
         }
         catch
         {
@@ -116,7 +116,7 @@ function Set-CSRAttributes
     $csr_yaml = @('extension_requests:')
     foreach ($attribute in $CSRAttributes.GetEnumerator())
     {
-        $csr_yaml += "  $($_.Name): $($_.Value)"
+        $csr_yaml += "  $($attribute.Name): $($attribute.Value)"
     }
     try
     {
@@ -133,20 +133,18 @@ if (Get-Command puppet -erroraction silentlycontinue)
 {
     throw "Puppet is already installed"
 }
-if ($PuppetVersion -match "^[1-9]$")
+# In case someone accidentally submitted just a number - we should ultimately do this check on the parameter but this will be fine for now.
+if ($PuppetMajorVersion -match "^[1-9]$")
 {
-    $PuppetVersion = "puppet$($PuppetVersion)"
+    $PuppetMajorVersion = "puppet$($PuppetMajorVersion)"
 }
 if ($PuppetMaster -notmatch ".$Domainname")
 {
     $PuppetMaster = "$PuppetMaster.$domainname"
 }
 # Quick test to make sure we can get to the PuppetMaster
-try
-{
-    Test-NetConnection $PuppetMaster -ErrorAction Stop | Out-Null
-}
-catch
+Write-Host "Checking connection to $PuppetMaster"
+if (!(Test-NetConnection $PuppetMaster -InformationLevel Quiet))
 {
     throw "Failed to contact $PuppetMaster, please check the name and network connection."
 }
@@ -182,17 +180,18 @@ if ( [Environment]::Is64BitOperatingSystem )
 {
     $arch = "x64"
 }
-$DownloadURL = "https://downloads.puppetlabs.com/windows/$($PUPPETVERSION.ToLower())/puppet-agent-$arch-latest.msi"
+$DownloadURL = "https://downloads.puppetlabs.com/windows/$($PuppetMajorVersion.ToLower())/puppet-agent-$arch-latest.msi"
 if ($PuppetAgentVersion -ne 'latest')
 {
-    $DownloadURL = "https://downloads.puppetlabs.com/windows/$($PUPPETVERSION.ToLower())/puppet-agent-$PuppetAgentVersion-$arch.msi"
+    $DownloadURL = "https://downloads.puppetlabs.com/windows/$($PuppetMajorVersion.ToLower())/puppet-agent-$PuppetAgentVersion-$arch.msi"
 }
 
 $tempname = ( -join ((0x30..0x39) + ( 0x41..0x5A) + ( 0x61..0x7A) | Get-Random -Count 8 | ForEach-Object { [char]$_ }))
 $tempdir = "$env:TEMP\$tempname"
+Write-Verbose "Temp dir is $tempdir"
 try
 {
-    New-Item $tempdir -ItemType Directory -ErrorAction Stop
+    New-Item $tempdir -ItemType Directory -ErrorAction Stop | Out-Null
 }
 catch
 {
@@ -204,8 +203,10 @@ $BITSCheck = Get-Service bits -ErrorAction SilentlyContinue | Select-Object -Exp
 if ($BitsCheck -ne 'Running')
 {
     # use slower legacy download method
+    Write-Verbose "Reverting to legacy download"
     $DownloadCommand = 'Invoke-WebRequest -Uri $DownloadURL -OutFile $installer -ErrorAction Stop'
 }
+Write-Host "Downloading puppet installer version: $PuppetMajorVersion"
 try
 {
     Invoke-Expression $DownloadCommand
@@ -220,8 +221,8 @@ $installer_params = @(
     '/norestart',
     '/i',
     "$installer",
-    "PUPPET_AGENT_STARTUP_MODE=$PuppetAgentStartupMode",
-    "PUPPET_MASTER_SERVER=$PuppetMaster",
+    "PUPPET_AGENT_STARTUP_MODE=$StartupMode",
+    "PUPPET_MASTER_SERVER=$($PuppetMaster.ToLower())",
     "PUPPET_AGENT_ENVIRONMENT=$PuppetEnvironment"
 )
 # do something for custom certnames here for those cases where we don't domain join a machine
@@ -233,9 +234,11 @@ if ((Test-Path "$env:SystemDrive\Vagrant") -and !($AgentCertName))
 }
 if ($AgentCertName)
 {
-    $installer_params += "PUPPET_AGENT_CERTNAME=$AgentCertName"
+    $installer_params += "PUPPET_AGENT_CERTNAME=$($AgentCertName.ToLower())"
 }
 
+write-debug "Installer params: $installer_params"
+Write-Host "Installing Puppet"
 try
 {
     Start-Process msiexec.exe -ArgumentList $installer_params -Wait -NoNewWindow -ErrorAction Stop
@@ -246,6 +249,21 @@ catch
     throw "Failed to install Puppet agent.`n$($_.Exception.Message)"
 }
 
+# Update path (need to make this x86/64 compatible)
+if ($env:Path -notcontains 'C:\Program Files\Puppet Labs\Puppet\bin' ) 
+{
+    $env:Path += ';C:\Program Files\Puppet Labs\Puppet\bin'
+    [Environment]::SetEnvironmentVariable('Path', $env:Path, 'Machine')
+}
+Write-Host "Performing first run of Puppet.`nIf this is a new machine then a CSR will be created."
+puppet agent -t --waitforcert $WaitForCertificate
+if ($WaitForCertificate = 0)
+{
+    Read-host "Please sign the certificate on $PuppetMaster and press enter to continue"
+    puppet agent -t
+}
+
+Remove-Item $tempdir -Recurse -Force -Confirm:$false -ErrorAction SilentlyContinue
 
 if ($MasterPort -ne 8140)
 {
