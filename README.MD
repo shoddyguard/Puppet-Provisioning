@@ -9,9 +9,11 @@ These scripts are intended for use in hiera based classification environments.
 ## Puppet Linux
 This script will help you get Puppet installed and talking to a Puppet master.
 
+Currently only Ubuntu is supported and the script has been validated on 18.04LTS
+
 Command line arguments:
 * `-h|--hostname` **(*required*)** the hostname of the machine you are building, should be the FQDN (eg webserver.foo.com) but the script will attempt to fix that if not.
-* `-d|--domain` **(*required*)** the domain that your machine should be part of (eg foo.com), this is needed to ensure role based deployment works as intended.
+* `-d|--domain` **(*required*)** the domain that your machine should be part of (eg foo.com), this is needed to ensure hiera lookups work as intended.
 * `-m|--puppetmaster` **(*required*)** the name of the Puppet master you are connecting to, this should be the FQDN (eg puppetmaster.foo.com)
 * `-p|--puppetport` **(*optional*)** the port to use on the Puppet server (defaults to 8140)
 * `-P|--puppetversion` **(*optional*)** the major release of puppet to use (defaults to Puppet6)
@@ -22,9 +24,9 @@ In addtion to these, you can optinally set extended CSR attributes with the foll
 * `-r|--pprole` Sets the pp role (eg ngixnx_box or iis_box)
 
 ## Puppet Windows
-(WIP)
+This script will get a Windows machine talking to your Puppet master.
 
-Only supports Puppet5+
+Script has been validated on server 2019 but it *should* work on Server 2012 onwards.
 
 
 ## Puppet Master 
@@ -57,7 +59,7 @@ There's some config options that are set within the script themselves as they ar
 * `DEFAULT_DOMAIN` this is the domain for which to append any missing FQDN information. (eg `.foo.com`)
 * `GITREPO` the ssh address of the Git repository you are using to store your Puppet environments
 * `PUPPET_VER` the major version of Puppet to use (eg `Puppet6`)
-* `PP_ENVIRONMENT`, `PP_SERVICE` & `PP_ROLE` used in the role based classification of your Puppet master, you may want to change these to match your environment.
+* `PP_ENVIRONMENT`, `PP_SERVICE` & `PP_ROLE` used in the hiera based lookup of your Puppet master, you may want to change these to match your environment.
 
 ## Testing
 If you want to do some testing then you'll want to install Vagrant and Virtualbox, this can be done with relative ease via Chocolatey:  
@@ -69,11 +71,10 @@ Currently there are 3 vagrant boxes in this repo:
 * `puppetagent-ubuntu`
 * `puppetagent-windows`
 
-The `puppetagent` box has 2GB of RAM, 2 CPUS, and a static IP of 192.168.69.3. It is running Ubuntu 1804.
-The `puppetmaster` box has a bit more RAM at 4GB, a static IP of 192.168.69.2 and has port 8080 of the host machine passed through to port 80 of the Vagrant box for testing puppetboard. It's also running Ubuntu 1804.
-The Windows box is running server 2019 Core (if the script works on Core it'll work anywhere).
+The `puppetagent-ubuntu` box has 2GB of RAM, 2 CPUS, and a static IP of 192.168.69.3. It is running Ubuntu 1804.
+The `puppetmaster` box has a bit more RAM at 4GB, a static IP of 192.168.69.2 and has port 8080 of the host machine passed through to port 80 of the Vagrant box for testing puppetboard. It's also running Ubuntu 1804. (If you're using Puppetboard as part of your build you'll need to head to http://127.0.0.1:8080/branch_name/ to avoid 404 errors when the `production` branch has no nodes.)
+The `puppetagent-windows` box is running server 2019 Core (if the script works on Core it'll work anywhere) and has a static IP of 192.168.69.4.
 
-(If you're using Puppetboard as part of your build you'll need to head to http://127.0.0.1:8080/branch_name/ to avoid 404 errors when the `production` branch has no nodes.)
 
 ### Hacking at things
 Create a setup-tmp folder
