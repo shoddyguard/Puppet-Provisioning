@@ -175,9 +175,11 @@ else
 }
 ## End Checks ##
 # For now we're getting the Puppet agent manually but ultimately I'd like to test getting it via chocolatey - that way we can keep the package up to date.
+# Default to x86 but attempt to get x64 where we can.
 $arch = "x86"
 if ( [Environment]::Is64BitOperatingSystem )
 {
+    Write-Verbose "x64 installation required."
     $arch = "x64"
 }
 $DownloadURL = "https://downloads.puppetlabs.com/windows/$($PuppetMajorVersion.ToLower())/puppet-agent-$arch-latest.msi"
@@ -195,7 +197,7 @@ try
 }
 catch
 {
-    throw "Failed to create temp directory"
+    throw "Failed to create temp directory.`n$($_.Exception.Message)"
 }
 $installer = "$tempdir\puppet.msi"
 $DownloadCommand = 'Start-BitsTransfer -Source $DownloadURL -Destination $installer -ErrorAction Stop'
@@ -206,7 +208,7 @@ if ($BitsCheck -ne 'Running')
     Write-Verbose "Reverting to legacy download"
     $DownloadCommand = 'Invoke-WebRequest -Uri $DownloadURL -OutFile $installer -ErrorAction Stop'
 }
-Write-Host "Downloading puppet installer version: $PuppetMajorVersion"
+Write-Host "Downloading Puppet installer version: $PuppetMajorVersion"
 try
 {
     Invoke-Expression $DownloadCommand
@@ -226,7 +228,13 @@ $installer_params = @(
     "PUPPET_AGENT_ENVIRONMENT=$PuppetEnvironment"
 )
 # do something for custom certnames here for those cases where we don't domain join a machine
-# If we've got a \vagrant folder assume we're in a Vagrant box.
+<#
+    If we've got a \vagrant folder assume we're in a Vagrant box
+    At the time of writing 2020-05-01, Puppet seems to be absorbing any local DNS into the FQDN for Workgroup machines.
+    (eg if the machine is vagrant.local but we have a DNS server for foobar.com on our network Puppet is creating a csr for vagrant.foobar.com)
+    Almost certainly not a problem in usual operation but for Vagrant it most certainly is.
+    So when we detect vagrant we override the cert name.
+#>
 $fqdn = "$env:computername.$domainname"
 if ((Test-Path "$env:SystemDrive\Vagrant") -and !($AgentCertName))
 {
@@ -234,19 +242,24 @@ if ((Test-Path "$env:SystemDrive\Vagrant") -and !($AgentCertName))
 }
 if ($AgentCertName)
 {
+    Write-Verbose "Setting agent cert name"
     $installer_params += "PUPPET_AGENT_CERTNAME=$($AgentCertName.ToLower())"
 }
 
-write-debug "Installer params: $installer_params"
-Write-Host "Installing Puppet"
+Write-debug "Installer params: $installer_params" # this has saved my bacon a couple of times in the past with weird installer args appearing.
+Write-Host "Installing Puppet Agent"
 try
 {
     Start-Process msiexec.exe -ArgumentList $installer_params -Wait -NoNewWindow -ErrorAction Stop
 }
 catch
 {
-    Remove-Item $tempdir -Recurse -Force -Confirm:$false -ErrorAction SilentlyContinue
     throw "Failed to install Puppet agent.`n$($_.Exception.Message)"
+}
+finally
+{
+    # Clean up our temp directory as we don't need it anymore
+    Remove-Item $tempdir -Recurse -Force -Confirm:$false -ErrorAction SilentlyContinue
 }
 
 # Update path (need to make this x86/64 compatible)
@@ -255,15 +268,13 @@ if ($env:Path -notcontains 'C:\Program Files\Puppet Labs\Puppet\bin' )
     $env:Path += ';C:\Program Files\Puppet Labs\Puppet\bin'
     [Environment]::SetEnvironmentVariable('Path', $env:Path, 'Machine')
 }
-Write-Host "Performing first run of Puppet.`nIf this is a new machine then a CSR will be created."
+Write-Host "Performing first run of Puppet.`nIf this is a new machine then a CSR will be created which will need signing on $PuppetMaster."
 puppet agent -t --waitforcert $WaitForCertificate
 if ($WaitForCertificate = 0)
 {
     Read-host "Please sign the certificate on $PuppetMaster and press enter to continue"
     puppet agent -t
 }
-
-Remove-Item $tempdir -Recurse -Force -Confirm:$false -ErrorAction SilentlyContinue
 
 if ($MasterPort -ne 8140)
 {
