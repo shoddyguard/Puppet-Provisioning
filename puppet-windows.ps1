@@ -50,7 +50,7 @@ param (
     [ValidateSet('Automatic', 'Manual', 'Disabled')]
     [ValidateNotNullOrEmpty()] # needed so as not to mess up the puppet.conf file
     [string]
-    $StartupMode = 'Disabled',
+    $StartupMode = 'Automatic',
 
     # How long to wait between cert checks
     [Parameter(Mandatory = $false)]
