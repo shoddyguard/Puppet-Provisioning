@@ -64,12 +64,14 @@ If you want to do some testing then you'll want to install Vagrant and Virtualbo
 `choco install vagrant, virtualbox`  
 This works well for testing changes to the scripts and some basic Puppet stuff, for anything more involved you'll really want to setup a virtual test envrionment.
 
-Currently there are 2 vagrant boxes in this repo:
+Currently there are 3 vagrant boxes in this repo:
 * `puppetmaster`
 * `puppetagent-ubuntu`
+* `puppetagent-windows`
 
 The `puppetagent` box has 2GB of RAM, 2 CPUS, and a static IP of 192.168.69.3. It is running Ubuntu 1804.
 The `puppetmaster` box has a bit more RAM at 4GB, a static IP of 192.168.69.2 and has port 8080 of the host machine passed through to port 80 of the Vagrant box for testing puppetboard. It's also running Ubuntu 1804.
+The Windows box is running server 2019 Core (if the script works on Core it'll work anywhere).
 
 (If you're using Puppetboard as part of your build you'll need to head to http://127.0.0.1:8080/branch_name/ to avoid 404 errors when the `production` branch has no nodes.)
 

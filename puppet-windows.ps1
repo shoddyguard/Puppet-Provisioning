@@ -141,6 +141,16 @@ if ($PuppetMaster -notmatch ".$Domainname")
 {
     $PuppetMaster = "$PuppetMaster.$domainname"
 }
+# Quick test to make sure we can get to the PuppetMaster
+try
+{
+    Test-NetConnection $PuppetMaster -ErrorAction Stop | Out-Null
+}
+catch
+{
+    throw "Failed to contact $PuppetMaster, please check the name and network connection."
+}
+
 if (!$CertificateExtensions)
 {
     while (!$answer)
