@@ -290,7 +290,7 @@ echo "Running r10k. This WILL take a while..."
 /usr/local/bin/r10k deploy environment --puppetfile || throw "r10k failed to deploy, exit code: $?"
 
 echo "Running puppet apply"
-cd "/etc/puppetlabs/code/environments/$PUPPETENV" || exit 1
+cd "/etc/puppetlabs/code/environments/$PUPPETENV" || throw "Failed to find /etc/puppetlabs/code/environments/$PUPPETENV. Are you sure your environment is valid?"
 /opt/puppetlabs/bin/puppet apply --hiera_config="/etc/puppetlabs/code/environments/$PUPPETENV/hiera.bootstrap.yaml" --modulepath="./modules:./ext-modules" -e 'include bs_puppetserver' || exit 1
 
 

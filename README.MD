@@ -76,5 +76,6 @@ The Windows box is running server 2019 Core (if the script works on Core it'll w
 (If you're using Puppetboard as part of your build you'll need to head to http://127.0.0.1:8080/branch_name/ to avoid 404 errors when the `production` branch has no nodes.)
 
 ### Hacking at things
+Create a setup-tmp folder
 Make the changes to the script and then `vagrant up` the box you want to test on (eg `vagrant up puppetmaster`) and then `vagrant ssh` into the box. 
 from here you can run the relevant script by doing `sudo bash /vagrant/<scriptname>.sh`

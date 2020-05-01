@@ -44,7 +44,7 @@ param (
     # The Puppet envrionment (aka Git branch) to use
     [Parameter(Mandatory = $false)]
     [string]
-    $PuppetEnvrionment = "puppet6_test",
+    $PuppetEnvironment = "puppet6_test",
 
     # Any extended CSR attributes you'd like to set (pp_service,pp_role,pp_envrironment)
     [Parameter(Mandatory = $false)]
@@ -129,7 +129,7 @@ function Set-CSRAttributes
 }
 ## End Setup ##
 ## Checks ##
-if (Get-Command puppet)
+if (Get-Command puppet -erroraction silentlycontinue)
 {
     throw "Puppet is already installed"
 }
@@ -161,6 +161,7 @@ if (!$CertificateExtensions)
             'y' 
             {
                 $CertificateExtensions = Get-CSRAttributes
+                Set-CSRAttributes $CertificateExtensions
             }
             'n' 
             {   
@@ -169,6 +170,10 @@ if (!$CertificateExtensions)
             default { Clear-Variable answer } # Unrecognised input, try again
         }
     }
+}
+else 
+{
+    Set-CSRAttributes $CertificateExtensions
 }
 ## End Checks ##
 # For now we're getting the Puppet agent manually but ultimately I'd like to test getting it via chocolatey - that way we can keep the package up to date.
@@ -194,9 +199,16 @@ catch
     throw "Failed to create temp directory"
 }
 $installer = "$tempdir\puppet.msi"
+$DownloadCommand = 'Start-BitsTransfer -Source $DownloadURL -Destination $installer -ErrorAction Stop'
+$BITSCheck = Get-Service bits -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Status
+if ($BitsCheck -ne 'Running')
+{
+    # use slower legacy download method
+    $DownloadCommand = 'Invoke-WebRequest -Uri $DownloadURL -OutFile $installer -ErrorAction Stop'
+}
 try
 {
-    Invoke-WebRequest -Uri $DownloadURL -OutFile $installer -ErrorAction Stop
+    Invoke-Expression $DownloadCommand
 }
 catch
 {
@@ -209,10 +221,20 @@ $installer_params = @(
     '/i',
     "$installer",
     "PUPPET_AGENT_STARTUP_MODE=$PuppetAgentStartupMode",
-    "PUPPET_MASTER_SERVER=$PuppetServer",
+    "PUPPET_MASTER_SERVER=$PuppetMaster",
     "PUPPET_AGENT_ENVIRONMENT=$PuppetEnvironment"
 )
 # do something for custom certnames here for those cases where we don't domain join a machine
+# If we've got a \vagrant folder assume we're in a Vagrant box.
+$fqdn = "$env:computername.$domainname"
+if ((Test-Path "$env:SystemDrive\Vagrant") -and !($AgentCertName))
+{
+    $AgentCertName = $fqdn
+}
+if ($AgentCertName)
+{
+    $installer_params += "PUPPET_AGENT_CERTNAME=$AgentCertName"
+}
 
 try
 {
