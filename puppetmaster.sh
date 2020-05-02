@@ -4,6 +4,7 @@
 DEFAULT_DOMAIN=
 GITREPO=
 PUPPET_VER="puppet6"
+PUPPETSERVERCLASS
 
 ## You _may_ want to change these ##
 PP_ENVIRONMENT="test"
