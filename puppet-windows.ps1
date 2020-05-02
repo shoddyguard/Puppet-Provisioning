@@ -11,14 +11,14 @@
 [CmdletBinding()]
 param (
     # The FQDN of the Puppet master you are connecting to
-    [Parameter(Mandatory = $false)]
+    [Parameter(Mandatory = $true)]
     [string]
-    $PuppetMaster = "puppettest-master.local",
+    $PuppetMaster,
 
     # The domain name you are using (might be irrelevant?)
-    [Parameter(Mandatory = $false)]
+    [Parameter(Mandatory = $true)]
     [string]
-    $DomainName = "local",
+    $DomainName,
 
     # The major version of Puppet to install
     [Parameter(Mandatory = $false)]
@@ -38,7 +38,7 @@ param (
     # The Puppet envrionment (aka Git branch) to use
     [Parameter(Mandatory = $false)]
     [string]
-    $PuppetEnvironment = "puppet6_test",
+    $PuppetEnvironment = "production",
 
     # Any extended CSR attributes you'd like to set (pp_service,pp_role,pp_envrironment)
     [Parameter(Mandatory = $false)]

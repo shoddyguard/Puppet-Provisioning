@@ -6,6 +6,7 @@ PUPPETMASTER=
 PUPPET_VER="puppet6"
 ## You _may_ want to change these
 WAIT_FOR_CERT=30 # how long Puppet will wait between checking for the cert, if set to 0 then the script will be paused while you sign the cert.
+PUPPETENV="production"
 
 ## You probably _don't_ want to change these ##
 TEMP_DIR="setup-tmp" # if you change this it's worth adding the new value to your .gitignore if you are using vagrant

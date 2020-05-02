@@ -12,11 +12,13 @@ This script will help you get Puppet installed and talking to a Puppet master.
 Currently only Ubuntu is supported and the script has been validated on 18.04LTS
 
 Command line arguments:
-* `-h|--hostname` **(*required*)** the hostname of the machine you are building, should be the FQDN (eg webserver.foo.com) but the script will attempt to fix that if not.
-* `-d|--domain` **(*required*)** the domain that your machine should be part of (eg foo.com), this is needed to ensure hiera lookups work as intended.
+* `-h|--hostname` **(*required*)** the hostname of the machine you are building, should be the FQDN (eg webserver.foo.com) but the script will attempt to fix that if not
+* `-d|--domain` **(*required*)** the domain that your machine should be part of (eg foo.com), this is needed to ensure hiera lookups work as intended
+* `-E|--puppetenv` **(*optional*)** the environment/git branch to use (defaults to production)
 * `-m|--puppetmaster` **(*required*)** the name of the Puppet master you are connecting to, this should be the FQDN (eg puppetmaster.foo.com)
 * `-p|--puppetport` **(*optional*)** the port to use on the Puppet server (defaults to 8140)
 * `-P|--puppetversion` **(*optional*)** the major release of puppet to use (defaults to Puppet6)
+* `-w|--wait` **(*optional*)** if set will pause the script to wait for you to sign the node on the Puppet Master
 
 In addtion to these, you can optinally set extended CSR attributes with the following:
 * `-e|--ppenv` Sets the pp environment (eg live/test)
@@ -27,6 +29,19 @@ In addtion to these, you can optinally set extended CSR attributes with the foll
 This script will get a Windows machine talking to your Puppet master.
 
 Script has been validated on server 2019 but it *should* work on Server 2012 onwards.
+
+Parameters:
+* `-PuppetMaster` **(*required*)** the name of the Puppet master you are connecting to, this should be the FQDN (eg puppetmaster.foo.com)
+* `-DomainName` **(*required*)** the domain that your machine should be part of (eg foo.com), this is needed to ensure hiera lookups work as intended
+* `-PuppetMajorVersion` **(*optional*)** the major release of puppet to use (defaults to Puppet6)
+* `-PuppetAgentVersion` **(*optional*)** the version of puppet-agent to use (defaults to latest)
+* `-MasterPort` **(*optional*)** the port to use on the Puppet server (defaults to 8140)
+* `-PuppetEnvironment` **(*optional*)** the environment/git branch to use (defaults to production)
+* `-CertificateExtensions` **(*optional*)** a hash of certificate extensions
+* `-StartupMode` **(*optional*)** the `puppet-agent` service startup mode (defaults to automatic)
+* `-WaitForCertificate` **(*optional*)** how long (in seconds) to wait between certificate checks (defaults to 30)
+
+**example hash**
 
 
 ## Puppet Master 
@@ -99,6 +114,7 @@ If you're using my template hiera repository then you will want to use the follo
 * pp environment: test
 * pp role: puppet6_master
 * pp service: puppetserver
+* Puppet server class: example_puppetserver
 
 If at any point you make a mistake and want to start over just press `ctrl` + `c` to exit the script and start over.  
 If things get really bad you can `vagrant destroy puppettest-master` and start again.
