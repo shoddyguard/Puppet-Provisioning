@@ -1,2 +1,4 @@
 .vagrant/
-setup-tmp/
+*.deb
+r10k.yaml
+*.pem

@@ -52,7 +52,8 @@ There's a few command line arguments that you can pass in, if you don't specify 
 * `-h|--hostname` **(*required*)** the hostname of the machine you are building, should be FQDN but the script will attempt to fix that if not.
 * `-E|--puppetenv` **(*required*)** the Puppet environment you'll use (aka Git branch name)
 * `-d|--domain` **(*required*)** the domain that your Puppet server should be part of (eg foo.com)
-* `-g|--gitrepo` **(*required*)** the ssh address of the Github repo to use for your version control
+* `-g|--gitrepo` **(*required*)** the ssh address of the Github repo to use for your r10k version control
+* `-C|--puppetserverclass` **(*required*)** the name of the class that your Puppet Master should use from your environment
 * `-P|--puppetversion` **(*optional*)** the major release of puppet to use (defaults to Puppet6)
 
 There's some config options that are set within the script themselves as they are unlikely to change much between runs.
@@ -62,21 +63,54 @@ There's some config options that are set within the script themselves as they ar
 * `PP_ENVIRONMENT`, `PP_SERVICE` & `PP_ROLE` used in the hiera based lookup of your Puppet master, you may want to change these to match your environment.
 
 ## Testing
-If you want to do some testing then you'll want to install Vagrant and Virtualbox, this can be done with relative ease via Chocolatey:  
+There's a [vagrantfile](vagrantfile) in the root of this repo that will allow you to quickly spin up VM's for testing changes to the scripts.
+To run these you'll need to install [Vagrant](https://www.vagrantup.com/intro/index.html) and [Virtualbox](https://www.virtualbox.org/), on Windows this can easily be done using [Chocolatey](https://chocolatey.org/):  
 `choco install vagrant, virtualbox`  
-This works well for testing changes to the scripts and some basic Puppet stuff, for anything more involved you'll really want to setup a virtual test envrionment.
+This method works well for testing changes to the scripts and even running a simple Puppet Master/Agent test environment but for anything more long term I would recommend spinning up a test environment with a permanent test Puppet Master.
 
-Currently there are 3 vagrant boxes in this repo:
-* `puppetmaster`
-* `puppetagent-ubuntu`
-* `puppetagent-windows`
+If you're setting up a Puppet Master/Agent environment with Vagrant you'll also want to make sure you've a decent amount of RAM, the Puppet Master needs 4GB and each agent needs 2GB.
+The boxes all have static IPs in the `192.168.69.x` range, if this conflicts with your local environment then you can change these from within the `vagrantfile`.
+The boxes are also using mDNS to be able to talk to each other, this is needed so the Master/Agent testing can work. 
 
-The `puppetagent-ubuntu` box has 2GB of RAM, 2 CPUS, and a static IP of 192.168.69.3. It is running Ubuntu 1804.
-The `puppetmaster` box has a bit more RAM at 4GB, a static IP of 192.168.69.2 and has port 8080 of the host machine passed through to port 80 of the Vagrant box for testing puppetboard. It's also running Ubuntu 1804. (If you're using Puppetboard as part of your build you'll need to head to http://127.0.0.1:8080/branch_name/ to avoid 404 errors when the `production` branch has no nodes.)
-The `puppetagent-windows` box is running server 2019 Core (if the script works on Core it'll work anywhere) and has a static IP of 192.168.69.4.
+### Bootstrapping a Puppet environment using Vagrant
+This will guide you through bootstrapping a Puppet environment from scratch, if you already have an existing Puppet environment then you can skip step 1.
 
+**Step 1 - Setting up your Puppet Environment (Repo)**  
+Pop over to my [hier-example](https://github.com/shoddyguard/puppet_hiera_example) repo and follow the instructions to make a copy of the repo and get setup ready to begin.
 
-### Hacking at things
-Create a setup-tmp folder
-Make the changes to the script and then `vagrant up` the box you want to test on (eg `vagrant up puppetmaster`) and then `vagrant ssh` into the box. 
-from here you can run the relevant script by doing `sudo bash /vagrant/<scriptname>.sh`
+**Step 2 - Clone this repo**  
+`git clone https://github.com/shoddyguard/Puppet-Provisioning.git`
+
+**Step 3 (Optional) - Copy your setup files**  
+If you want you can copy over your `private_key.pkcs7.pem`, `public_key.pkcs7.pem` and `r10k.yaml` files to the `passthru` folder in the root of this repo, if you don't do this you will be prompted to enter them into the script.
+
+**Step 4 - Start the Puppet Master Box**  
+Run the following command:  
+`vagrant up puppettest-master`  
+Wait for Vagrant to do it's thing and then login to the box with:
+`vagrant ssh puppettest-master`
+
+**Step 5 - Run the `puppetmaster.sh` script**  
+`sudo bash /vagrant/puppetmaster.sh` and follow the on-screen instructions, if you want to save time you can pass in many of the variables as parameters (see [Puppet Master](#puppet-master) above).
+
+If you're using my template hiera repository then you will want to use the following:
+* Hostname: puppettest-master.local
+* Default domain: local
+* pp environment: test
+* pp role: puppet6_master
+* pp service: puppetserver
+
+If at any point you make a mistake and want to start over just press `ctrl` + `c` to exit the script and start over.  
+If things get really bad you can `vagrant destroy puppettest-master` and start again.
+
+**Step 5 - Test!**  
+Providing the script completes without issue you should now have a brand new working Puppet environment, congrats.
+At this point it would be good to test that your hiera-eyaml and `sudo puppet agent -t` is running succesfully.
+
+**Step 6 (Optional) - Set up a second Puppet node**  
+A good test that your new Puppet Master is working correctly is to setup another node and have it connect back to the Master.  
+To do this, you'll want to `vagrant up` one of the other boxes in the repo - I'd suggest the `puppetagent-ubuntu` box as it's a bit more lightweight than the `puppetagent-windows` box.  
+Once your new box is ready go ahead and ssh into it and run the relevant script: `/vagrant/puppet-linux.sh` or `c:\vagrant\puppet-windows.ps1` and have them point to `puppettest-master.local` as their Puppet Master, providing mDNS is working as intended this should be fine - however I've had odd instances where this isn't the case and I've had to manually edit the `hosts` file to point to the Puppet Master.
+
+**Step 7 (Optional) - Fork this repo to hardcode your information**  
+If you're going to be running these scripts a lot for bootstrapping Puppet then you may want to fork this repo and hardcode your information into the scripts (eg Puppet Master, default domain etc) to reduce the amount of data you have to enter for each new node to the bare minimum.
