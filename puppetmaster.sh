@@ -69,9 +69,17 @@ while :; do
                 PUPPET_VER="$2"
                 shift
             else
-                throw `ERROR: "-P|--puppetversion" requires a value`
+                throw 'ERROR: "-P|--puppetversion" requires a value'
             fi
         ;;
+        -C|--PUPPETSERVERCLASS)
+            if ["$2"]; then
+                PUPPETSERVERCLASS="$2"
+                shift
+            else
+                throw 'ERROR: "-C|--puppetserverclass requires a value'
+            fi
+        ::
         *)
             if [ $1 ]; then
                 throw "ERROR: unsupported parameter passed: '$1'"
@@ -291,7 +299,7 @@ echo "Running r10k. This WILL take a while..."
 
 echo "Running puppet apply"
 cd "/etc/puppetlabs/code/environments/$PUPPETENV" || throw "Failed to find /etc/puppetlabs/code/environments/$PUPPETENV. Are you sure your environment is valid?"
-/opt/puppetlabs/bin/puppet apply --hiera_config="/etc/puppetlabs/code/environments/$PUPPETENV/hiera.bootstrap.yaml" --modulepath="./modules:./ext-modules" -e 'include bs_puppetserver' || exit 1
+/opt/puppetlabs/bin/puppet apply --hiera_config="/etc/puppetlabs/code/environments/$PUPPETENV/hiera.bootstrap.yaml" --modulepath="./modules:./ext-modules" -e include "$PUPPETSERVERCLASS" || exit 1
 
 
 echo "
