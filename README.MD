@@ -2,12 +2,12 @@
 A collection of handy scripts to help you get up and running with Puppet as quickly as possible.
 Heavily inspired by Red-Gate's Puppet Bootstrap project.
 
-These scripts are intended for use in hiera based classification environments.
+These scripts are intended for use in hiera based classification environments whereby extended CSR attributes are used to classify nodes, an example of this can be seen in the [hier-example](https://github.com/shoddyguard/puppet_hiera_example) repo.
 
 **Disclaimer**: I have no idea what I'm doing.
 
 ## Puppet Linux
-This script will help you get Puppet installed and talking to a Puppet master.
+This script will help you get Puppet installed and talking to a Puppet Master.
 
 Currently only Ubuntu is supported and the script has been validated on 18.04LTS
 
@@ -18,15 +18,16 @@ Command line arguments:
 * `-m|--puppetmaster` **(*required*)** the name of the Puppet master you are connecting to, this should be the FQDN (eg puppetmaster.foo.com)
 * `-p|--puppetport` **(*optional*)** the port to use on the Puppet server (defaults to 8140)
 * `-P|--puppetversion` **(*optional*)** the major release of puppet to use (defaults to Puppet6)
+* `-A|--puppetagentversion` **(*optional*)** the puppet-agent version to install (defaults to latest)
 * `-w|--wait` **(*optional*)** if set will pause the script to wait for you to sign the node on the Puppet Master
 
-In addtion to these, you can optinally set extended CSR attributes with the following:
+In addtion to these, you can optionally set extended CSR attributes with the following:
 * `-e|--ppenv` Sets the pp environment (eg live/test)
 * `-s|--ppservice` Sets the pp service (eg webserver)
 * `-r|--pprole` Sets the pp role (eg ngixnx_box or iis_box)
 
 ## Puppet Windows
-This script will get a Windows machine talking to your Puppet master.
+This script will get a Windows machine talking to your Puppet Master.
 
 Script has been validated on server 2019 but it *should* work on Server 2012 onwards.
 
@@ -41,8 +42,8 @@ Parameters:
 * `-StartupMode` **(*optional*)** the `puppet-agent` service startup mode (defaults to automatic)
 * `-WaitForCertificate` **(*optional*)** how long (in seconds) to wait between certificate checks (defaults to 30)
 
-**example hash**
-
+**Example CertificateExtensions Hash**  
+`@{pp_environment="live";pp_service="webserver";pp_role="apache_webserver"}`
 
 ## Puppet Master 
 The purpose of this script is to aid in the setting up of a new Puppet server from scratch, this is extremely useful when testing out a major Puppet release as you are able to spin up and test with relative ease.
@@ -87,7 +88,7 @@ If you're setting up a Puppet Master/Agent environment with Vagrant you'll also 
 The boxes all have static IPs in the `192.168.69.x` range, if this conflicts with your local environment then you can change these from within the `vagrantfile`.
 The boxes are also using mDNS to be able to talk to each other, this is needed so the Master/Agent testing can work. 
 
-### Bootstrapping a Puppet environment using Vagrant
+## Bootstrapping a Puppet environment using Vagrant
 This will guide you through bootstrapping a Puppet environment from scratch, if you already have an existing Puppet environment then you can skip step 1.
 
 **Step 1 - Setting up your Puppet Environment (Repo)**  
