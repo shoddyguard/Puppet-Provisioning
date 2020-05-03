@@ -231,7 +231,7 @@ if [ "$dist" == "\"CentOS Linux\"" ]; then
     echo "Installing Puppet Agent"
     yum update || exit 1
     if [ "$PUPPETAGENT_VER" != 'latest' ]; then
-        yum install puppet-agent "$PUPPETAGENT_VER" -y || exit 1
+        yum install puppet-agent-"$PUPPETAGENT_VER" -y || exit 1
     else
         yum install puppet-agent -y || exit 1
     fi
@@ -244,7 +244,7 @@ elif [ "$dist" == "\"Ubuntu\"" ]; then
     apt-get update || exit 1
     echo "installing Puppet Agent"
     if [ "$PUPPETAGENT_VER" != 'latest' ]; then
-        apt-get install puppet-agent "$PUPPETAGENT_VER" || exit 1
+        apt-get install puppet-agent="$PUPPETAGENT_VER" || exit 1
     else
         apt-get install puppet-agent || exit 1
     fi
