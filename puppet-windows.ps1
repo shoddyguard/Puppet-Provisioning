@@ -40,7 +40,7 @@ param (
     [string]
     $PuppetEnvironment = "production",
 
-    # Any extended CSR attributes you'd like to set (pp_service,pp_role,pp_envrironment)
+    # Any extended CSR attributes you'd like to set (pp_service,pp_role,pp_envrironment etc)
     [Parameter(Mandatory = $false)]
     [hashtable]
     $CertificateExtensions,

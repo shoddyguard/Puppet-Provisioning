@@ -2,7 +2,7 @@
 A collection of handy scripts to help you get up and running with Puppet as quickly as possible.
 Heavily inspired by Red-Gate's Puppet Bootstrap project.
 
-These scripts are intended for use in hiera based classification environments whereby extended CSR attributes are used to classify nodes, an example of this can be seen in the [hier-example](https://github.com/shoddyguard/puppet_hiera_example) repo.
+These scripts are intended for use in hiera based classification environments whereby extended CSR attributes are used to classify nodes, an example of this can be seen in the [hiera-example](https://github.com/shoddyguard/puppet_hiera_example) repo.
 
 **Disclaimer**: I have no idea what I'm doing.
 
@@ -89,10 +89,10 @@ The boxes all have static IPs in the `192.168.69.x` range, if this conflicts wit
 The boxes are also using mDNS to be able to talk to each other, this is needed so the Master/Agent testing can work. 
 
 ## Bootstrapping a Puppet environment using Vagrant
-This will guide you through bootstrapping a Puppet environment from scratch, if you already have an existing Puppet environment then you can skip step 1.
+This will guide you through bootstrapping a quick Puppet testing environment from scratch, if you already have an existing Puppet environment then you can skip step 1.
 
 **Step 1 - Setting up your Puppet Environment (Repo)**  
-Pop over to my [hier-example](https://github.com/shoddyguard/puppet_hiera_example) repo and follow the instructions to make a copy of the repo and get setup ready to begin.
+Pop over to my [hiera-example](https://github.com/shoddyguard/puppet_hiera_example) repo and follow the instructions to make a copy of the repo and get setup ready to begin.
 
 **Step 2 - Clone this repo**  
 `git clone https://github.com/shoddyguard/Puppet-Provisioning.git`
