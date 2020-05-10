@@ -21,13 +21,22 @@ Vagrant.configure("2") do |config|
       pd.vm.hostname = "puppetagent-debian"
       pd.vm.network "private_network", ip: "192.168.69.4"
     end
+    config.vm.define "puppetagent-fbsd" do |pf|
+      pf.vm.box = "bento/freebsd-11"
+      pf.vm.hostname = "puppetagent-fbsd"
+      pf.vm.synced_folder ".", "/vagrant", id: "vagrant-root", disabled: false
+      pf.vm.network "private_network", ip: "192.168.69.5"
+      pf.vm.provision "install", type: "shell", inline: <<-SHELL
+
+      SHELL
+    end
     config.vm.define "puppetagent-windows" do |pw|
       pw.vm.box = "gusztavvargadr/windows-server"
       pw.winrm.retry_limit = 5
       pw.winrm.retry_delay = 20
       pw.vm.box_version = "1809.0.2003-standard-core"
       pw.vm.hostname = "puppetagent-win"
-      pw.vm.network "private_network", ip: "192.168.69.5"
+      pw.vm.network "private_network", ip: "192.168.69.6"
       pw.vm.provision "install", type: "shell", inline: <<-SHELL
         choco install bonjour -y
       SHELL
