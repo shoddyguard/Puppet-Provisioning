@@ -221,7 +221,7 @@ dist=`awk -F= '/^NAME/{print $2}' /etc/os-release`
 
 cd "$TEMP_DIR"
 dist=`awk -F= '/^NAME/{print $2}' /etc/os-release`
-# TODO: Debian support?
+# TODO: Let's move this into a function or something to tidy up the code, that way we can have the OS check happen much earlier on then the download can come later.
 if [ "$dist" == "\"CentOS Linux\"" ]; then
     version=`awk -F= '/^VERSION_ID/{print $2}' /etc/os-release`
     URL="https://yum.puppetlabs.com/puppet6/${PUPPET_VER}-release-el-${version//\"}.noarch.rpm"
@@ -236,6 +236,19 @@ if [ "$dist" == "\"CentOS Linux\"" ]; then
         yum install puppet-agent -y || exit 1
     fi
 elif [ "$dist" == "\"Ubuntu\"" ]; then
+    RELEASE_NAME=`lsb_release -c -s`
+    URL="https://apt.puppetlabs.com/${PUPPET_VER}-release-${RELEASE_NAME}.deb"
+    echo "Fetching installer from $URL"
+    wget "$URL" || exit 1
+    dpkg -i ${PUPPET_VER}-release-${RELEASE_NAME}.deb || exit 1
+    apt-get update || exit 1
+    echo "installing Puppet Agent"
+    if [ "$PUPPETAGENT_VER" != 'latest' ]; then
+        apt-get install puppet-agent="$PUPPETAGENT_VER" || exit 1
+    else
+        apt-get install puppet-agent || exit 1
+    fi
+elif [ "$dist" == "\"Debian GNU/Linux\"" ]; then
     RELEASE_NAME=`lsb_release -c -s`
     URL="https://apt.puppetlabs.com/${PUPPET_VER}-release-${RELEASE_NAME}.deb"
     echo "Fetching installer from $URL"
