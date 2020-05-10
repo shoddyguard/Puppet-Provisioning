@@ -248,7 +248,7 @@ elif [ "$dist" == "\"Ubuntu\"" ]; then
     else
         apt-get install puppet-agent || exit 1
     fi
-elif [ "$dist" == "\"Debian GNU/Linux\"" ;] then
+elif [ "$dist" == "\"Debian GNU/Linux\"" ]; then
     RELEASE_NAME=`lsb_release -c -s`
     URL="https://apt.puppetlabs.com/${PUPPET_VER}-release-${RELEASE_NAME}.deb"
     echo "Fetching installer from $URL"
@@ -261,7 +261,6 @@ elif [ "$dist" == "\"Debian GNU/Linux\"" ;] then
     else
         apt-get install puppet-agent || exit 1
     fi
-fi
 else
     throw "Currently only Ubuntu and CentOS are supported."
 fi
