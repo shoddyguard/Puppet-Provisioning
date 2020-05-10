@@ -9,7 +9,10 @@ These scripts are intended for use in hiera based classification environments wh
 ## Puppet Linux
 This script will help you get Puppet installed and talking to a Puppet Master.
 
-Currently only Ubuntu is supported and the script has been validated on 18.04LTS
+Currently only Ubuntu and Debian are supported.  
+Validated on:
+* Ubuntu 18.04 LTS
+* Debian Buster 10.3
 
 Command line arguments:
 * `-h|--hostname` **(*required*)** the hostname of the machine you are building, should be the FQDN (eg webserver.foo.com) but the script will attempt to fix that if not
