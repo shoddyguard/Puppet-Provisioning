@@ -6,6 +6,8 @@ PUPPETMASTER=
 PUPPET_VER="puppet6"
 ## You _may_ want to change these
 WAIT_FOR_CERT=30 # how long Puppet will wait between checking for the cert, if set to 0 then the script will be paused while you sign the cert.
+PUPPETENV="production"
+PUPPETAGENT_VER="latest"
 
 ## You probably _don't_ want to change these ##
 TEMP_DIR="setup-tmp" # if you change this it's worth adding the new value to your .gitignore if you are using vagrant
@@ -91,12 +93,20 @@ while :; do
                 throw 'ERROR: "-r|--pprole" requires a value'
             fi
         ;;
-        -P|--puppetversion)
+        -V|--puppetversion)
             if [ "$2" ]; then
                 PUPPET_VER="$2"
                 shift
             else
-                throw `ERROR: "-P|--puppetversion" requires a value`
+                throw `ERROR: "-V|--puppetversion" requires a value`
+            fi
+        ;;
+        -A|--puppetagentversion)
+            if [ "$2" ]; then
+                PUPPETAGENT_VER="$2"
+                shift
+            else
+                throw `ERROR: "-A|--puppetagentversion" requires a value`
             fi
         ;;
         -w|--wait)
@@ -220,7 +230,11 @@ if [ "$dist" == "\"CentOS Linux\"" ]; then
     rpm -Uvh ${PUPPET_VER}-release-el-${version//\"}.noarch.rpm || exit 1
     echo "Installing Puppet Agent"
     yum update || exit 1
-    yum install puppet-agent -y || exit 1
+    if [ "$PUPPETAGENT_VER" != 'latest' ]; then
+        yum install puppet-agent-"$PUPPETAGENT_VER" -y || exit 1
+    else
+        yum install puppet-agent -y || exit 1
+    fi
 elif [ "$dist" == "\"Ubuntu\"" ]; then
     RELEASE_NAME=`lsb_release -c -s`
     URL="https://apt.puppetlabs.com/${PUPPET_VER}-release-${RELEASE_NAME}.deb"
@@ -229,7 +243,11 @@ elif [ "$dist" == "\"Ubuntu\"" ]; then
     dpkg -i ${PUPPET_VER}-release-${RELEASE_NAME}.deb || exit 1
     apt-get update || exit 1
     echo "installing Puppet Agent"
-    apt-get install puppet-agent || exit 1
+    if [ "$PUPPETAGENT_VER" != 'latest' ]; then
+        apt-get install puppet-agent="$PUPPETAGENT_VER" || exit 1
+    else
+        apt-get install puppet-agent || exit 1
+    fi
 else
     throw "Currently only Ubuntu and CentOS are supported."
 fi

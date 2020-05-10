@@ -4,6 +4,7 @@
 DEFAULT_DOMAIN=
 GITREPO=
 PUPPET_VER="puppet6"
+PUPPETSERVERCLASS=
 
 ## You _may_ want to change these ##
 PP_ENVIRONMENT="test"
@@ -69,7 +70,15 @@ while :; do
                 PUPPET_VER="$2"
                 shift
             else
-                throw `ERROR: "-P|--puppetversion" requires a value`
+                throw 'ERROR: "-P|--puppetversion" requires a value'
+            fi
+        ;;
+        -C|--PUPPETSERVERCLASS)
+            if ["$2"]; then
+                PUPPETSERVERCLASS="$2"
+                shift
+            else
+                throw 'ERROR: "-C|--puppetserverclass requires a value'
             fi
         ;;
         *)
@@ -86,8 +95,8 @@ done
 ### START TEX-MEX PRE-REQS CHECKS ###
 
 # this is just temporary - I'll find a better way
-PUPPET_TEST=`dpkg --get-selections | grep puppet`
-if [ "$PUPPET_TEST"  ]; then
+PUPPET_TEST='/opt/puppetlabs/puppet'
+if [ -d "$PUPPET_TEST"  ]; then
     throw "It looks like Puppet is already installed on this machine."
 fi
 
@@ -97,6 +106,9 @@ fi
 
 if [ -z "$GITREPO" ]; then
     read -p "Enter in the git repo where your environments live: " GITREPO
+fi
+if [ -z "$PUPPETSERVERCLASS" ]; then
+    read -p "What is the name of your Puppetserver class: " PUPPETSERVERCLASS
 fi
 
 # Make sure we have a sensible hostname (could WHILE this to ensure we don't keep bombing out of the script)
@@ -200,6 +212,7 @@ Hostname: $NEWHOSTNAME
 Puppet Version: $PUPPET_VER
 Source Control: $GITREPO
 Starting Environment: $PUPPETENV
+Puppet Server Class: $PUPPETSERVERCLASS
 Extended Certificate Attributes:
     Environment: $PP_ENVIRONMENT
     Service: $PP_SERVICE
@@ -290,8 +303,8 @@ echo "Running r10k. This WILL take a while..."
 /usr/local/bin/r10k deploy environment --puppetfile || throw "r10k failed to deploy, exit code: $?"
 
 echo "Running puppet apply"
-cd "/etc/puppetlabs/code/environments/$PUPPETENV" || exit 1
-/opt/puppetlabs/bin/puppet apply --hiera_config="/etc/puppetlabs/code/environments/$PUPPETENV/hiera.bootstrap.yaml" --modulepath="./modules:./ext-modules" -e 'include bs_puppetserver' || exit 1
+cd "/etc/puppetlabs/code/environments/$PUPPETENV" || throw "Failed to find /etc/puppetlabs/code/environments/$PUPPETENV. Are you sure your environment is valid?"
+/opt/puppetlabs/bin/puppet apply --hiera_config="/etc/puppetlabs/code/environments/$PUPPETENV/hiera.bootstrap.yaml" --modulepath="./modules:./ext-modules" -e "include $PUPPETSERVERCLASS" || exit 1
 
 
 echo "
