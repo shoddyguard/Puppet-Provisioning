@@ -20,13 +20,15 @@ param (
     [string]
     $DomainName,
 
-    # The major version of Puppet to install
+    # The method for installing Puppet
     [Parameter(Mandatory = $false)]
+    [ValidateSet('Chocolatey', 'Legacy')]
     [string]
-    $PuppetMajorVersion = "puppet6",
+    $InstallationMethod = 'Chocolatey',
 
-    # The specific puppet agent version to install
+    # The specific puppet agent version to install (if you override it should be in a format such as: 6.15.0)
     [Parameter(Mandatory = $false)]
+    [ValidatePattern('^(\d{1,2}\.)?(\d{1,2}\.)?(\d{1,2})$|^latest$')]
     [string]
     $PuppetAgentVersion = 'latest',
 
@@ -133,10 +135,44 @@ if (Get-Command puppet -erroraction silentlycontinue)
 {
     throw "Puppet is already installed"
 }
-# In case someone accidentally submitted just a number - we should ultimately do this check on the parameter but this will be fine for now.
-if ($PuppetMajorVersion -match "^[1-9]$")
+if ($InstallationMethod -eq 'Chocolatey' -and !(Get-Command 'choco' -ErrorAction SilentlyContinue))
 {
-    $PuppetMajorVersion = "puppet$($PuppetMajorVersion)"
+    Write-Warning -Message "Chocolately does not appear to be installed on your system.`nI can attempt to install it for you?"
+    while (!$ChocoInstall) 
+    {
+        $ChocoInstall = Read-Host "Install Chocolatey? [y/n]"
+        switch ($chocoinstall) 
+        {
+            'y' 
+            { 
+                $InstallChocolatey = $true
+            }
+            'n'
+            {
+                # do nothing - will fall back to legacy installer.
+            }
+            Default 
+            {
+                Clear-Variable $ChocoInstall # unrecognised input, try again.
+            }
+        }
+    }
+}
+if ($InstallChocolatey -eq $true)
+{
+    try
+    {
+        Install-Chocolatey -ErrorAction Stop
+    }
+    catch
+    {
+        throw "Failed to install Chocolatey.`n$($_.Exception.Message)"
+    }
+}
+# If we're using the legacy installer we'll need to know our major version of puppet.
+if ($InstallationMethod -eq 'legacy')
+{
+    $PuppetMajorVersion = "puppet" + $PuppetAgentVersion.Substring(0)
 }
 if ($PuppetMaster -notmatch ".$Domainname")
 {
@@ -146,7 +182,7 @@ if ($PuppetMaster -notmatch ".$Domainname")
 Write-Host "Checking connection to $PuppetMaster"
 if (!(Test-NetConnection $PuppetMaster -InformationLevel Quiet))
 {
-    throw "Failed to contact $PuppetMaster, please check the name and network connection."
+    #throw "Failed to contact $PuppetMaster, please check the name and network connection."
 }
 
 if (!$CertificateExtensions)
@@ -173,61 +209,6 @@ else
 {
     Set-CSRAttributes $CertificateExtensions
 }
-## End Checks ##
-# For now we're getting the Puppet agent manually but ultimately I'd like to test getting it via chocolatey - that way we can keep the package up to date.
-# Default to x86 but attempt to get x64 where we can.
-$arch = "x86"
-if ( [Environment]::Is64BitOperatingSystem )
-{
-    Write-Verbose "x64 installation required."
-    $arch = "x64"
-}
-$DownloadURL = "https://downloads.puppetlabs.com/windows/$($PuppetMajorVersion.ToLower())/puppet-agent-$arch-latest.msi"
-if ($PuppetAgentVersion -ne 'latest')
-{
-    $DownloadURL = "https://downloads.puppetlabs.com/windows/$($PuppetMajorVersion.ToLower())/puppet-agent-$PuppetAgentVersion-$arch.msi"
-}
-
-$tempname = ( -join ((0x30..0x39) + ( 0x41..0x5A) + ( 0x61..0x7A) | Get-Random -Count 8 | ForEach-Object { [char]$_ }))
-$tempdir = "$env:TEMP\$tempname"
-Write-Verbose "Temp dir is $tempdir"
-try
-{
-    New-Item $tempdir -ItemType Directory -ErrorAction Stop | Out-Null
-}
-catch
-{
-    throw "Failed to create temp directory.`n$($_.Exception.Message)"
-}
-$installer = "$tempdir\puppet.msi"
-$DownloadCommand = 'Start-BitsTransfer -Source $DownloadURL -Destination $installer -ErrorAction Stop'
-$BITSCheck = Get-Service bits -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Status
-if ($BitsCheck -ne 'Running')
-{
-    # use slower legacy download method
-    Write-Verbose "Reverting to legacy download"
-    $DownloadCommand = 'Invoke-WebRequest -Uri $DownloadURL -OutFile $installer -ErrorAction Stop'
-}
-Write-Host "Downloading Puppet installer version: $PuppetMajorVersion"
-try
-{
-    Invoke-Expression $DownloadCommand
-}
-catch
-{
-    Remove-Item $tempdir -Recurse -Force -Confirm:$false -ErrorAction SilentlyContinue
-    "Failed to get Puppet installer.`n$($_.Exception.Message)"
-}
-$installer_params = @(
-    '/qn',
-    '/norestart',
-    '/i',
-    "$installer",
-    "PUPPET_AGENT_STARTUP_MODE=$StartupMode",
-    "PUPPET_MASTER_SERVER=$($PuppetMaster.ToLower())",
-    "PUPPET_AGENT_ENVIRONMENT=$PuppetEnvironment"
-)
-# do something for custom certnames here for those cases where we don't domain join a machine
 <#
     If we've got a \vagrant folder assume we're in a Vagrant box
     At the time of writing 2020-05-01, Puppet seems to be absorbing any local DNS into the FQDN for Workgroup machines.
@@ -240,26 +221,115 @@ if ((Test-Path "$env:SystemDrive\Vagrant") -and !($AgentCertName))
 {
     $AgentCertName = $fqdn
 }
-if ($AgentCertName)
-{
-    Write-Verbose "Setting agent cert name"
-    $installer_params += "PUPPET_AGENT_CERTNAME=$($AgentCertName.ToLower())"
-}
+## End Checks ##
 
-Write-debug "Installer params: $installer_params" # this has saved my bacon a couple of times in the past with weird installer args appearing.
-Write-Host "Installing Puppet Agent"
-try
+# Legacy installer
+if ($InstallationMethod -eq 'Legacy')
 {
-    Start-Process msiexec.exe -ArgumentList $installer_params -Wait -NoNewWindow -ErrorAction Stop
+    # For now we're getting the Puppet agent manually but ultimately I'd like to test getting it via chocolatey - that way we can keep the package up to date.
+    # Default to x86 but attempt to get x64 where we can.
+    Write-Verbose "Using legacy installer"
+    $arch = "x86"
+    if ( [Environment]::Is64BitOperatingSystem )
+    {
+        Write-Verbose "x64 installation required."
+        $arch = "x64"
+    }
+    $DownloadURL = "https://downloads.puppetlabs.com/windows/$PuppetMajorVersion/puppet-agent-$arch-latest.msi"
+    if ($PuppetAgentVersion -ne 'latest')
+    {
+        $DownloadURL = "https://downloads.puppetlabs.com/windows/$PuppetMajorVersion/puppet-agent-$PuppetAgentVersion-$arch.msi"
+    }
+    Write-Verbose "Download URL: $DownloadURL"
+    # Spin up a tempdir we can use for storing the download in
+    $tempname = ( -join ((0x30..0x39) + ( 0x41..0x5A) + ( 0x61..0x7A) | Get-Random -Count 8 | ForEach-Object { [char]$_ }))
+    $tempdir = "$env:TEMP\$tempname"
+    Write-Verbose "Temp dir is $tempdir"
+    try
+    {
+        New-Item $tempdir -ItemType Directory -ErrorAction Stop | Out-Null
+    }
+    catch
+    {
+        throw "Failed to create temp directory.`n$($_.Exception.Message)"
+    }
+    $installer = "$tempdir\puppet.msi"
+    $DownloadCommand = 'Start-BitsTransfer -Source $DownloadURL -Destination $installer -ErrorAction Stop'
+    $BITSCheck = Get-Service bits -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Status
+    if ($BitsCheck -ne 'Running')
+    {
+        # use slower legacy download method
+        Write-Verbose "Reverting to legacy download"
+        $DownloadCommand = 'Invoke-WebRequest -Uri $DownloadURL -OutFile $installer -ErrorAction Stop'
+    }
+    Write-Host "Downloading Puppet installer version: $PuppetMajorVersion"
+    try
+    {
+        Invoke-Expression $DownloadCommand
+    }
+    catch
+    {
+        Remove-Item $tempdir -Recurse -Force -Confirm:$false -ErrorAction SilentlyContinue
+        "Failed to get Puppet installer.`n$($_.Exception.Message)"
+    }
+    $installer_params = @(
+        '/qn',
+        '/norestart',
+        '/i',
+        "$installer",
+        "PUPPET_AGENT_STARTUP_MODE=$StartupMode",
+        "PUPPET_MASTER_SERVER=$($PuppetMaster.ToLower())",
+        "PUPPET_AGENT_ENVIRONMENT=$PuppetEnvironment"
+    )
+    # do something for custom certnames here for those cases where we don't domain join a machine
+    if ($AgentCertName)
+    {
+        Write-Verbose "Setting agent cert name"
+        $installer_params += "PUPPET_AGENT_CERTNAME=$($AgentCertName.ToLower())"
+    }
+    Write-debug "Installer params: $installer_params" # this has saved my bacon a couple of times in the past with weird installer args appearing.
+    Write-Host "Installing Puppet Agent"
+    try
+    {
+        Start-Process msiexec.exe -ArgumentList $installer_params -Wait -NoNewWindow -ErrorAction Stop
+    }
+    catch
+    {
+        throw "Failed to install Puppet agent.`n$($_.Exception.Message)"
+    }
+    finally
+    {
+        # Clean up our temp directory as we don't need it anymore
+        Remove-Item $tempdir -Recurse -Force -Confirm:$false -ErrorAction SilentlyContinue
+    }
 }
-catch
+else 
 {
-    throw "Failed to install Puppet agent.`n$($_.Exception.Message)"
-}
-finally
-{
-    # Clean up our temp directory as we don't need it anymore
-    Remove-Item $tempdir -Recurse -Force -Confirm:$false -ErrorAction SilentlyContinue
+    $InstallationArguments = 'install puppet-agent'
+    if ($PuppetAgentVersion -ne 'latest')
+    {
+        $InstallationArguments += " --version=$PuppetAgentVersion"
+    }
+    $PuppetArguments = " --install-args='PUPPET_AGENT_STARTUP_MODE=$StartupMode PUPPET_MASTER_SERVER=$($PuppetMaster.ToLower()) PUPPET_AGENT_ENVIRONMENT=$PuppetEnvironment'"
+    if ($AgentCertName)
+    {
+        $PuppetArguments = " --install-args=`"`'PUPPET_AGENT_STARTUP_MODE=$StartupMode PUPPET_MASTER_SERVER=$($PuppetMaster.ToLower()) PUPPET_AGENT_ENVIRONMENT=$PuppetEnvironment PUPPET_AGENT_CERTNAME=$($AgentCertName.ToLower())`'`""
+    }
+    $InstallationArguments += $PuppetArguments
+    Write-Verbose "Installing Puppet with:`n$InstallationArguments"
+    try 
+    {
+        $ChocoResult = Start-Process 'choco' -ArgumentList $InstallationArguments -Wait -NoNewWindow -ErrorAction Stop
+    }
+    catch 
+    {
+       throw "Failed to install Puppet.`n$($_.Exception.Message)"
+    }
+    $validexitcodes = (0,3010,1641)
+    if ($ChocoResult.ExitCode -notin $validexitcodes)
+    {
+        throw "Looks like Chocolatey failed to install Puppet correctly.`nExit code: $($ChocoResult.ExitCode)"
+    }
 }
 
 # Update path (need to make this x86/64 compatible)
