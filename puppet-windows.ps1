@@ -182,7 +182,7 @@ if ($PuppetMaster -notmatch ".$Domainname")
 Write-Host "Checking connection to $PuppetMaster"
 if (!(Test-NetConnection $PuppetMaster -InformationLevel Quiet))
 {
-    #throw "Failed to contact $PuppetMaster, please check the name and network connection."
+    throw "Failed to contact $PuppetMaster, please check the name and network connection."
 }
 
 if (!$CertificateExtensions)
