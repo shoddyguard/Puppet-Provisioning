@@ -166,7 +166,7 @@ if (Get-Command puppet -erroraction silentlycontinue)
 }
 if ($InstallationMethod -eq 'Chocolatey' -and !(Get-Command 'choco' -ErrorAction SilentlyContinue))
 {
-    Write-Warning -Message "Chocolately does not appear to be installed on your system.`nWould you like to install it? (selecing 'n' will revert to legacy instaler)"
+    Write-Warning -Message "Chocolately does not appear to be installed on your system.`nWould you like to install it?"
     while (!$ChocoInstall) 
     {
         $ChocoInstall = Read-Host "Install Chocolatey? [y/n]"
@@ -174,28 +174,25 @@ if ($InstallationMethod -eq 'Chocolatey' -and !(Get-Command 'choco' -ErrorAction
         {
             'y' 
             { 
-                $InstallChocolatey = $true
+                try
+                {
+                    Install-Chocolatey
+                }
+                catch
+                {
+                    throw "Failed to install Chocolatey.`n$($_.Exception.Message)"
+                }
             }
             'n'
             {
-                $InstallationMethod = 'Legacy'
+                Write-Host 'If you want to use the legacy installer, run this script again specifying "-InstallationMethod Legacy"'
+                exit
             }
             Default 
             {
                 Clear-Variable $ChocoInstall # unrecognised input, try again.
             }
         }
-    }
-}
-if ($InstallChocolatey -eq $true)
-{
-    try
-    {
-        Install-Chocolatey
-    }
-    catch
-    {
-        throw "Failed to install Chocolatey.`n$($_.Exception.Message)"
     }
 }
 # If we're using the legacy installer we'll need to know our major version of puppet.
