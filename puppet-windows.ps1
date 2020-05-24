@@ -335,7 +335,7 @@ else
     {
         $InstallationArguments += " --version=$PuppetAgentVersion"
     }
-    $PuppetArguments = " --install-args='PUPPET_AGENT_STARTUP_MODE=$StartupMode PUPPET_MASTER_SERVER=$($PuppetMaster.ToLower()) PUPPET_AGENT_ENVIRONMENT=$PuppetEnvironment'"
+    $PuppetArguments = " --install-args=`"`'PUPPET_AGENT_STARTUP_MODE=$StartupMode PUPPET_MASTER_SERVER=$($PuppetMaster.ToLower()) PUPPET_AGENT_ENVIRONMENT=$PuppetEnvironment`'`""
     if ($AgentCertName)
     {
         $PuppetArguments = " --install-args=`"`'PUPPET_AGENT_STARTUP_MODE=$StartupMode PUPPET_MASTER_SERVER=$($PuppetMaster.ToLower()) PUPPET_AGENT_ENVIRONMENT=$PuppetEnvironment PUPPET_AGENT_CERTNAME=$($AgentCertName.ToLower())`'`""
