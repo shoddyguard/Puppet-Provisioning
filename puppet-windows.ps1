@@ -334,7 +334,7 @@ if ($InstallationMethod -eq 'Legacy')
 }
 else 
 {
-    $InstallationArguments = 'install puppet-agent'
+    $InstallationArguments = 'install puppet-agent -y'
     if ($PuppetAgentVersion -ne 'latest')
     {
         $InstallationArguments += " --version=$PuppetAgentVersion"
