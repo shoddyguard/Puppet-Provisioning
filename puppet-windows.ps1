@@ -129,6 +129,31 @@ function Set-CSRAttributes
         throw "failed to set yaml."
     }
 }
+function Install-Chocolatey 
+{
+    Write-Output "Installing Chocolatey"
+    if (([Enum]::GetNames([Net.SecurityProtocolType]) -contains 'Tls12') -ne $true)
+    {
+        throw "TLS 1.2 either not supported or cannot be enabled on your system"
+    }
+    if (([System.Net.ServicePointManager]::SecurityProtocol.HasFlag([Net.SecurityProtocolType]::Tls12)) -ne $true)
+    {
+        try 
+        {
+            [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+        }
+        catch 
+        {
+            throw "Failed to set TLS 1.2.`n$($_.Exception.Message)"
+        }
+    }
+    if (([System.Net.ServicePointManager]::SecurityProtocol.HasFlag([Net.SecurityProtocolType]::Tls12)) -ne $true)
+    {
+        throw "Tried to set TLS 1.2 but it still isn't active."
+    }
+    [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+    Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+}
 ## End Setup ##
 ## Checks ##
 if (Get-Command puppet -erroraction silentlycontinue)
@@ -137,7 +162,7 @@ if (Get-Command puppet -erroraction silentlycontinue)
 }
 if ($InstallationMethod -eq 'Chocolatey' -and !(Get-Command 'choco' -ErrorAction SilentlyContinue))
 {
-    Write-Warning -Message "Chocolately does not appear to be installed on your system.`nI can attempt to install it for you?"
+    Write-Warning -Message "Chocolately does not appear to be installed on your system.`nWould you like to install it? (selecing 'n' will revert to legacy instaler)"
     while (!$ChocoInstall) 
     {
         $ChocoInstall = Read-Host "Install Chocolatey? [y/n]"
@@ -149,7 +174,7 @@ if ($InstallationMethod -eq 'Chocolatey' -and !(Get-Command 'choco' -ErrorAction
             }
             'n'
             {
-                # do nothing - will fall back to legacy installer.
+                $InstallationMethod = 'Legacy'
             }
             Default 
             {
@@ -162,7 +187,7 @@ if ($InstallChocolatey -eq $true)
 {
     try
     {
-        Install-Chocolatey -ErrorAction Stop
+        Install-Chocolatey
     }
     catch
     {
@@ -287,7 +312,7 @@ if ($InstallationMethod -eq 'Legacy')
         Write-Verbose "Setting agent cert name"
         $installer_params += "PUPPET_AGENT_CERTNAME=$($AgentCertName.ToLower())"
     }
-    Write-debug "Installer params: $installer_params" # this has saved my bacon a couple of times in the past with weird installer args appearing.
+    Write-Debug "Installer params: $installer_params" # this has saved my bacon a couple of times in the past with weird installer args appearing.
     Write-Host "Installing Puppet Agent"
     try
     {
@@ -323,9 +348,9 @@ else
     }
     catch 
     {
-       throw "Failed to install Puppet.`n$($_.Exception.Message)"
+        throw "Failed to install Puppet.`n$($_.Exception.Message)"
     }
-    $validexitcodes = (0,3010,1641)
+    $validexitcodes = (0, 3010, 1641)
     if ($ChocoResult.ExitCode -notin $validexitcodes)
     {
         throw "Looks like Chocolatey failed to install Puppet correctly.`nExit code: $($ChocoResult.ExitCode)"
@@ -342,7 +367,7 @@ Write-Host "Performing first run of Puppet.`nIf this is a new machine then a CSR
 puppet agent -t --waitforcert $WaitForCertificate
 if ($WaitForCertificate = 0)
 {
-    Read-host "Please sign the certificate on $PuppetMaster and press enter to continue"
+    Read-Host "Please sign the certificate on $PuppetMaster and press enter to continue"
     puppet agent -t
 }
 
