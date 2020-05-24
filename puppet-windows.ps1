@@ -103,6 +103,10 @@ function Set-CSRAttributes
         $CSRAttributes
     )
     $csr_yaml_path = "$env:ProgramData\PuppetLabs\puppet\etc\csr_attributes.yaml"
+    if (Test-Path $csr_yaml_path)
+    {
+        Remove-Item $csr_yaml_path -Confirm:$false -Force
+    }
     $csr_yaml_parent = Split-Path $csr_yaml_path
     if (!(Test-Path $csr_yaml_parent))
     {
@@ -344,7 +348,7 @@ else
     Write-Verbose "Installing Puppet with:`n$InstallationArguments"
     try 
     {
-        $ChocoResult = Start-Process 'choco' -ArgumentList $InstallationArguments -Wait -NoNewWindow -ErrorAction Stop
+        $ChocoResult = Start-Process 'choco' -ArgumentList $InstallationArguments -Wait -NoNewWindow -ErrorAction Stop -PassThru
     }
     catch 
     {
