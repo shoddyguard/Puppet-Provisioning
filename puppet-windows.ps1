@@ -195,11 +195,6 @@ if ($InstallationMethod -eq 'Chocolatey' -and !(Get-Command 'choco' -ErrorAction
         }
     }
 }
-# If we're using the legacy installer we'll need to know our major version of puppet.
-if ($InstallationMethod -eq 'legacy')
-{
-    $PuppetMajorVersion = "puppet" + $PuppetAgentVersion.Substring(0)
-}
 if ($PuppetMaster -notmatch ".$Domainname")
 {
     $PuppetMaster = "$PuppetMaster.$domainname"
@@ -255,6 +250,7 @@ if ($InstallationMethod -eq 'Legacy')
     # For now we're getting the Puppet agent manually but ultimately I'd like to test getting it via chocolatey - that way we can keep the package up to date.
     # Default to x86 but attempt to get x64 where we can.
     Write-Verbose "Using legacy installer"
+    $PuppetMajorVersion = "puppet" + $PuppetAgentVersion.Substring(0)
     $arch = "x86"
     if ( [Environment]::Is64BitOperatingSystem )
     {
