@@ -348,7 +348,7 @@ else
     Write-Verbose "Installing Puppet with:`n$InstallationArguments"
     try 
     {
-        $ChocoResult = Start-Process 'choco' -ArgumentList $InstallationArguments -Wait -NoNewWindow -ErrorAction Stop -PassThru
+        $ChocoResult = Start-Process 'choco' -ArgumentList $InstallationArguments -Wait -NoNewWindow -PassThru -ErrorAction Stop
     }
     catch 
     {
