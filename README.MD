@@ -30,15 +30,16 @@ In addtion to these, you can optionally set extended CSR attributes with the fol
 * `-r|--pprole` Sets the pp role (eg ngixnx_box or iis_box)
 
 ## Puppet Windows
-This script will get a Windows machine talking to your Puppet Master.
+This script will get a Windows machine talking to your Puppet Master, it can either use Chocolatey or a legacy MSI installer to configure Puppet Agent.
+Chocolatey is preferred as this allows you to manage Puppet Agent versions with Puppet.
 
-Script has been validated on server 2019 but it *should* work on Server 2012 onwards.
+Script has been validated on server 2019 and Windows 10 Professional but it *should* work on at least Server 2012 onwards.
 
 Parameters:
 * `-PuppetMaster` **(*required*)** the name of the Puppet master you are connecting to, this should be the FQDN (eg puppetmaster.foo.com)
 * `-DomainName` **(*required*)** the domain that your machine should be part of (eg foo.com), this is needed to ensure hiera lookups work as intended
-* `-PuppetMajorVersion` **(*optional*)** the major release of puppet to use (defaults to Puppet6)
-* `-PuppetAgentVersion` **(*optional*)** the version of puppet-agent to use (defaults to latest)
+* `-InstallationMethod` **(*optional*)** which method to use for installing the Puppet Agent, choices are `Chocolatey` or `Legacy` (defaults to Chocolatey)
+* `-PuppetAgentVersion` **(*optional*)** the version of puppet-agent to use, if overriden it should be in the format `6.15.0` (defaults to latest)
 * `-MasterPort` **(*optional*)** the port to use on the Puppet server (defaults to 8140)
 * `-PuppetEnvironment` **(*optional*)** the environment/git branch to use (defaults to production)
 * `-CertificateExtensions` **(*optional*)** a hash of certificate extensions
